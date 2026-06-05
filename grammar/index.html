@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Grammar — ExamPrep</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    :root {
+      --purple-dark:  #26215C;
+      --purple-main:  #534AB7;
+      --purple-mid:   #7F77DD;
+      --purple-light: #CECBF6;
+      --purple-pale:  #EEEDFE;
+      --bg:           #F0EEF8;
+      --radius:       14px;
+      --radius-sm:    10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; font-family: 'DM Sans', sans-serif; background: var(--bg); }
+
+    #splash {
+      position: fixed; inset: 0; background: var(--purple-main);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      z-index: 100; transition: opacity 0.4s ease;
+    }
+    #splash.hide { opacity: 0; pointer-events: none; }
+    .splash-icon { font-size: 44px; color: #fff; }
+    .splash-name { font-size: 20px; font-weight: 600; color: #fff; }
+    .splash-sub  { font-size: 13px; color: var(--purple-light); }
+    .splash-spinner {
+      width: 26px; height: 26px; border: 2.5px solid var(--purple-light);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin-top: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #app { height: 100%; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.3s ease; }
+    #app.show { opacity: 1; }
+
+    .header { background: var(--purple-main); padding: 10px 18px 20px; flex-shrink: 0; }
+    .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .back-btn { display: flex; align-items: center; gap: 5px; color: var(--purple-light); font-size: 13px; cursor: pointer; }
+    .back-btn i { font-size: 16px; }
+    .home-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.15); color: #fff;
+      font-size: 12px; font-weight: 500; padding: 6px 13px;
+      border-radius: 20px; cursor: pointer; text-decoration: none;
+    }
+    .home-btn i { font-size: 14px; }
+    .header-title { font-size: 20px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .header-title i { font-size: 22px; color: var(--purple-light); }
+    .header-sub { font-size: 12px; color: var(--purple-light); margin-top: 3px; }
+
+    .stats-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 14px 0; flex-shrink: 0; }
+    .strip-card { background: #fff; border-radius: var(--radius-sm); padding: 12px 14px; border: 0.5px solid var(--purple-light); }
+    .strip-val { font-size: 20px; font-weight: 600; color: var(--purple-main); }
+    .strip-lbl { font-size: 10px; color: #888; margin-top: 2px; }
+
+    .scroll { flex: 1; overflow-y: auto; padding: 14px 14px 30px; -webkit-overflow-scrolling: touch; }
+    .scroll::-webkit-scrollbar { width: 0; }
+
+    .sec-head {
+      font-size: 11px; font-weight: 600; color: var(--purple-main);
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 10px; margin-top: 2px;
+    }
+
+    .quiz-list { display: flex; flex-direction: column; gap: 9px; }
+
+    .qcard {
+      background: #fff; border-radius: var(--radius); padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px; cursor: pointer;
+      border: 0.5px solid #E0DEFA; position: relative; overflow: hidden;
+      text-decoration: none;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      animation: fadeUp 0.35s ease both;
+    }
+    .qcard:active { transform: scale(0.97); opacity: 0.85; }
+    .qcard:nth-child(1) { animation-delay: 0.05s; }
+    .qcard:nth-child(2) { animation-delay: 0.08s; }
+    .qcard:nth-child(3) { animation-delay: 0.11s; }
+    .qcard:nth-child(4) { animation-delay: 0.14s; }
+    .qcard:nth-child(5) { animation-delay: 0.17s; }
+    .qcard:nth-child(6) { animation-delay: 0.20s; }
+    .qcard:nth-child(7) { animation-delay: 0.23s; }
+    .qcard:nth-child(8) { animation-delay: 0.26s; }
+    .qcard.done { background: #FAFAFE; border-color: var(--purple-light); }
+
+    .qnum {
+      width: 36px; height: 36px; border-radius: var(--radius-sm); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700;
+      background: var(--purple-pale); color: var(--purple-main);
+    }
+    .qcard.done .qnum { background: var(--purple-main); color: #fff; }
+
+    .qinfo { flex: 1; min-width: 0; }
+    .qtitle { font-size: 14px; font-weight: 600; color: var(--purple-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qmeta { font-size: 11px; color: #aaa; margin-top: 3px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .qdot { width: 3px; height: 3px; border-radius: 50%; background: #ddd; flex-shrink: 0; }
+    .attempts { color: var(--purple-mid); font-weight: 600; }
+
+    .qright { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+    .qscore { font-size: 15px; font-weight: 700; color: var(--purple-main); }
+    .qscore.none { font-size: 12px; font-weight: 400; color: #ccc; }
+    .qarrow { font-size: 17px; color: var(--purple-light); }
+    .qcard.done .qarrow { color: var(--purple-main); }
+
+    .done-bar {
+      position: absolute; bottom: 0; left: 0; height: 3px;
+      background: linear-gradient(90deg, var(--purple-main), var(--purple-mid));
+      border-radius: 0 2px 0 0; transition: width 0.8s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #1a1a2e; color: #fff; font-size: 13px; font-weight: 500;
+      padding: 10px 20px; border-radius: 20px; white-space: nowrap;
+      opacity: 0; transition: all 0.25s ease; pointer-events: none; z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<div id="splash">
+  <i class="ti ti-pencil-check splash-icon"></i>
+  <div class="splash-name">Grammar</div>
+  <div class="splash-sub">Loading your progress...</div>
+  <div class="splash-spinner"></div>
+</div>
+
+<div id="app">
+  <div class="header">
+    <div class="header-top">
+      <div class="back-btn" onclick="history.back()"><i class="ti ti-arrow-left"></i> Back</div>
+      <a class="home-btn" href="../index.html"><i class="ti ti-home"></i> Main menu</a>
+    </div>
+    <div class="header-title"><i class="ti ti-pencil-check"></i> Grammar</div>
+    <div class="header-sub">Complete all 8 quizzes to master grammar</div>
+  </div>
+
+  <div class="stats-strip">
+    <div class="strip-card">
+      <div class="strip-val" id="statCompleted">0 / 8</div>
+      <div class="strip-lbl">Quizzes completed</div>
+    </div>
+    <div class="strip-card">
+      <div class="strip-val" id="statAvg">—</div>
+      <div class="strip-lbl">Average score</div>
+    </div>
+  </div>
+
+  <div class="scroll">
+    <div class="sec-head" style="margin-top:14px;">8 Quizzes</div>
+    <div class="quiz-list">
+
+      <a class="qcard" href="./quiz1.html" data-quiz="1">
+        <div class="qnum">1</div>
+        <div class="qinfo">
+          <div class="qtitle">There is / There are</div>
+          <div class="qmeta">
+            <span class="attempts" id="att-1">0 attempts</span>
+            <span class="qdot"></span>
+            <span id="best-1">Not attempted</span>
+          </div>
+        </div>
+        <div class="qright">
+          <span class="qscore none" id="score-1">—</span>
+          <i class="ti ti-arrow-right qarrow"></i>
+        </div>
+      </a>
+
+      <a class="qcard" href="./quiz2.html" data-quiz="2">
+        <div class="qnum">2</div>
+        <div class="qinfo">
+          <div class="qtitle">Can / Can't</div>
+          <div class="qmeta">
+            <span class="attempts" id="att-2">0 attempts</span>
+            <span class="qdot"></span>
+            <span id="best-2">Not attempted</span>
+          </div>
+        </div>
+        <div class="qright">
+          <span class="qscore none" id="score-2">—</span>
+          <i class="ti ti-arrow-right qarrow"></i>
+        </div>
+      </a>
+
+      <a class="qcard" href="./quiz3.html" data-quiz="3">
+        <div class="qnum">3</div>
+        <div class="qinfo">
+          <div class="qtitle">Word Order</div>
+          <div class="qmeta">
+            <span class="attempts" id="att-3">0 attempts</span>
+            <span class="qdot"></span>
+            <span id="best-3">Not attempted</span>
+          </div>
+        </div>
+        <div class="qright">
+          <span class="qscore none" id="score-3">—</span>
+          <i class="ti ti-arrow-right qarrow"></i>
+        </div>
+      </a>
+
+      <a class="qcard" href="./quiz4.html" data-quiz="4">
+        <div class="qnum">4</div>
+        <div class="qinfo">
+          <div class="qtitle">Past Simple</div>
+          <div class="qmeta">
+            <span class="attempts" id="att-4">0 attempts</span>
+            <span class="qdot"></span>
+            <span id="best-4">Not attempted</span>
+          </div>
+        </div>
+        <div class="qright">
+          <span class="qscore none" id="score-4">—</span>
+          <i class="ti ti-arrow-right qarrow"></i>
+        </div>
+      </a>
+
+      <a class="qcard" href="./quiz5.html" data-quiz="5">
+        <div class="qnum">5</div>
+        <div class="qinfo">
+          <div class="qtitle">Questions</div>
+          <div class="qmeta">
+            <span class="attempts" id="att-5">0 attempts</span>
+            <span class="qdot"></span>
+            <span id="best-5">Not attempted</span>
+          </div>
+        </div>
+        <div class="qright">
+          <span class="qscore none" id="score-5">—</span>
+          <i class="ti ti-arrow-right qarrow"></i>
+        </div>
+      </a>
+
+      <a class="qcard" href="./quiz6.html" data-quiz="6">
+        <div class="qnum">6</div>
+        <div class="qinfo">
+          <div class="qtitle">Past Simple II</div>
+          <div class="qmeta">
+            <span class="attempts" id="att-6">0 attempts</span>
+            <span class="qdot"></span>
+            <span id="best-6">Not attempted</span>
+          </div>
+        </div>
+        <div class="qright">
+          <span class="qscore none" id="score-6">—</span>
+          <i class="ti ti-arrow-right qarrow"></i>
+        </div>
+      </a>
+
+      <a class="qcard" href="./quiz7.html" data-quiz="7">
+        <div class="qnum">7</div>
+        <div class="qinfo">
+          <div class="qtitle">Word Order II</div>
+          <div class="qmeta">
+            <span class="attempts" id="att-7">0 attempts</span>
+            <span class="qdot"></span>
+            <span id="best-7">Not attempted</span>
+          </div>
+        </div>
+        <div class="qright">
+          <span class="qscore none" id="score-7">—</span>
+          <i class="ti ti-arrow-right qarrow"></i>
+        </div>
+      </a>
+
+      <a class="qcard" href="./quiz8.html" data-quiz="8">
+        <div class="qnum">8</div>
+        <div class="qinfo">
+          <div class="qtitle">To Be Going To</div>
+          <div class="qmeta">
+            <span class="attempts" id="att-8">0 attempts</span>
+            <span class="qdot"></span>
+            <span id="best-8">Not attempted</span>
+          </div>
+        </div>
+        <div class="qright">
+          <span class="qscore none" id="score-8">—</span>
+          <i class="ti ti-arrow-right qarrow"></i>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const SUPABASE_URL = 'https://wfpphviaosfedotbivtb.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ';
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const tg = window.Telegram?.WebApp;
+
+  tg?.ready();
+  tg?.expand();
+
+  function attLabel(n) {
+    if (n === 0) return '0 attempts';
+    return n + (n === 1 ? ' attempt' : ' attempts');
+  }
+
+  async function getTelegramId() {
+    if (tg?.initDataUnsafe?.user) return String(tg.initDataUnsafe.user.id);
+    return localStorage.getItem('dev_tg_id') || 'dev_user';
+  }
+
+  async function getUserId(telegramId) {
+    const { data } = await db
+      .from('exam_users')
+      .select('id')
+      .eq('telegram_id', telegramId)
+      .single();
+    return data?.id || null;
+  }
+
+  async function loadProgress(userId) {
+    const { data } = await db
+      .from('exam_quiz_attempts')
+      .select('quiz_id, score')
+      .eq('user_id', userId)
+      .eq('skill', 'grammar');
+
+    if (!data || data.length === 0) return;
+
+    // Group by quiz_id
+    const byQuiz = {};
+    data.forEach(row => {
+      if (!byQuiz[row.quiz_id]) byQuiz[row.quiz_id] = [];
+      byQuiz[row.quiz_id].push(row.score);
+    });
+
+    let completedCount = 0;
+    let totalBestScore = 0;
+
+    Object.entries(byQuiz).forEach(([quizId, scores]) => {
+      const attempts = scores.length;
+      const best     = Math.max(...scores);
+      completedCount++;
+      totalBestScore += best;
+
+      const attEl   = document.getElementById('att-'   + quizId);
+      const bestEl  = document.getElementById('best-'  + quizId);
+      const scoreEl = document.getElementById('score-' + quizId);
+      const card    = document.querySelector(`[data-quiz="${quizId}"]`);
+
+      if (attEl)   attEl.textContent  = attLabel(attempts);
+      if (bestEl)  bestEl.textContent = 'Best: ' + best + '%';
+      if (scoreEl) { scoreEl.textContent = best + '%'; scoreEl.classList.remove('none'); }
+      if (card) {
+        card.classList.add('done');
+        const numEl = card.querySelector('.qnum');
+        if (numEl) { numEl.style.background = 'var(--purple-main)'; numEl.style.color = '#fff'; }
+        const bar = document.createElement('div');
+        bar.className = 'done-bar';
+        bar.style.width = '0%';
+        card.appendChild(bar);
+        setTimeout(() => { bar.style.width = best + '%'; }, 100);
+      }
+    });
+
+    document.getElementById('statCompleted').textContent = completedCount + ' / 8';
+    if (completedCount > 0) {
+      document.getElementById('statAvg').textContent = Math.round(totalBestScore / completedCount) + '%';
+    }
+  }
+
+  async function init() {
+    try {
+      const telegramId = await getTelegramId();
+      const userId = await getUserId(telegramId);
+      if (userId) await loadProgress(userId);
+    } catch (e) {
+      console.error('Grammar progress error:', e);
+    }
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('app').classList.add('show');
+  }
+
+  init();
+</script>
+</body>
+</html>
