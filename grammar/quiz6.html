@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Quiz 6 — Past Simple II</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    :root {
+      --purple-dark:#26215C;--purple-main:#534AB7;--purple-mid:#7F77DD;
+      --purple-light:#CECBF6;--purple-pale:#EEEDFE;
+      --teal-dark:#085041;--teal-main:#0F6E56;--teal-pale:#E1F5EE;
+      --coral-dark:#712B13;--coral-main:#993C1D;--coral-pale:#FAECE7;
+      --bg:#F0EEF8;--radius:14px;--radius-sm:10px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);}
+    #quizScreen{height:100%;display:flex;flex-direction:column;}
+    .header{background:var(--purple-main);padding:10px 18px 16px;flex-shrink:0;}
+    .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .back-btn{display:flex;align-items:center;gap:5px;color:var(--purple-light);font-size:13px;cursor:pointer;text-decoration:none;}
+    .back-btn i{font-size:16px;}
+    .home-btn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;font-weight:500;padding:6px 13px;border-radius:20px;cursor:pointer;text-decoration:none;}
+    .home-btn i{font-size:14px;}
+    .progress-row{display:flex;align-items:center;gap:10px;}
+    .progress-track{flex:1;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;overflow:hidden;}
+    .progress-fill{height:100%;background:#fff;border-radius:3px;transition:width 0.4s ease;width:0%;}
+    .progress-label{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;min-width:40px;text-align:right;}
+    .scroll{flex:1;overflow-y:auto;padding:20px 16px 30px;-webkit-overflow-scrolling:touch;}
+    .scroll::-webkit-scrollbar{width:0;}
+    .qtopic{font-size:11px;font-weight:600;color:var(--purple-main);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;}
+    .qlabel{font-size:13px;color:#888;margin-bottom:6px;font-style:italic;}
+    .qtext{font-size:16px;font-weight:600;color:var(--purple-dark);line-height:1.6;margin-bottom:16px;background:#fff;border-radius:var(--radius-sm);padding:14px 16px;border:0.5px solid var(--purple-light);}
+    .input-label{font-size:11px;font-weight:600;color:var(--purple-main);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:8px;}
+    .answer-input{width:100%;background:#fff;border:2px solid var(--purple-light);border-radius:var(--radius);padding:14px 16px;font-size:15px;font-family:'DM Sans',sans-serif;color:var(--purple-dark);outline:none;transition:border-color 0.2s;margin-bottom:16px;resize:none;min-height:60px;}
+    .answer-input:focus{border-color:var(--purple-main);}
+    .answer-input.correct{border-color:var(--teal-main);background:var(--teal-pale);color:var(--teal-dark);}
+    .answer-input.wrong{border-color:var(--coral-main);background:var(--coral-pale);color:var(--coral-dark);}
+    .feedback-box{border-radius:var(--radius-sm);padding:12px 14px;display:none;align-items:flex-start;gap:9px;margin-bottom:18px;animation:fadeUp 0.25s ease both;}
+    .feedback-box.show{display:flex;}
+    .feedback-box.correct-fb{background:var(--teal-pale);}
+    .feedback-box.wrong-fb{background:var(--coral-pale);}
+    .fb-icon{font-size:17px;flex-shrink:0;}
+    .fb-text{font-size:13px;line-height:1.55;}
+    .feedback-box.correct-fb .fb-text{color:var(--teal-dark);}
+    .feedback-box.wrong-fb .fb-text{color:var(--coral-dark);}
+    .check-btn{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;transition:opacity 0.2s;}
+    .check-btn:disabled{opacity:0.35;cursor:not-allowed;}
+    .check-btn i{font-size:17px;}
+    .next-btn{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:none;align-items:center;justify-content:center;gap:8px;animation:fadeUp 0.25s ease both;}
+    .next-btn.show{display:flex;}
+    .next-btn i{font-size:17px;}
+    #resultScreen{display:none;flex-direction:column;height:100%;}
+    #resultScreen.show{display:flex;}
+    .result-header{background:var(--purple-main);padding:10px 18px 16px;flex-shrink:0;}
+    .result-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .result-scroll{flex:1;overflow-y:auto;padding:24px 18px 30px;display:flex;flex-direction:column;align-items:center;}
+    .result-emoji{font-size:54px;text-align:center;margin-bottom:10px;}
+    .result-title{font-size:21px;font-weight:700;color:var(--purple-dark);text-align:center;margin-bottom:4px;}
+    .result-sub{font-size:13px;color:#999;text-align:center;margin-bottom:24px;}
+    .score-circle{width:116px;height:116px;border-radius:50%;background:var(--purple-pale);border:4px solid var(--purple-main);display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:24px;}
+    .score-num{font-size:32px;font-weight:700;color:var(--purple-main);line-height:1;}
+    .score-lbl{font-size:11px;color:#888;margin-top:4px;}
+    .result-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;margin-bottom:24px;}
+    .rstat{background:#fff;border-radius:var(--radius-sm);padding:12px 10px;text-align:center;border:0.5px solid #E0DEFA;}
+    .rstat-val{font-size:20px;font-weight:700;}
+    .rstat-lbl{font-size:10px;color:#888;margin-top:3px;}
+    .rstat.c .rstat-val{color:var(--teal-main);}
+    .rstat.w .rstat-val{color:var(--coral-main);}
+    .rstat.a .rstat-val{color:var(--purple-main);}
+    .result-btns{display:flex;flex-direction:column;gap:9px;width:100%;}
+    .btn-retry{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .btn-back{width:100%;background:#fff;color:var(--purple-main);border:1.5px solid var(--purple-light);border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .btn-retry i,.btn-back i{font-size:17px;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  </style>
+</head>
+<body>
+
+<div id="quizScreen">
+  <div class="header">
+    <div class="header-top">
+      <a class="back-btn" href="./index.html"><i class="ti ti-arrow-left"></i> Grammar</a>
+      <a class="home-btn" href="../index.html"><i class="ti ti-home"></i> Main menu</a>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-label" id="progressLabel">0 / 10</span>
+    </div>
+  </div>
+  <div class="scroll" id="quizScroll">
+    <div class="qtopic">Past Simple II — Rewrite the sentence</div>
+    <div class="qlabel">Rewrite this sentence in the past simple.</div>
+    <div class="qtext" id="qtext"></div>
+    <div class="input-label">Your answer</div>
+    <textarea class="answer-input" id="answerInput" placeholder="Type the sentence in the past simple..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" rows="2"></textarea>
+    <div class="feedback-box" id="feedbackBox">
+      <span class="fb-icon" id="fbIcon"></span>
+      <div class="fb-text" id="fbText"></div>
+    </div>
+    <button class="check-btn" id="checkBtn" onclick="checkAnswer()" disabled><i class="ti ti-check"></i> Check answer</button>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next question <i class="ti ti-arrow-right"></i></button>
+  </div>
+</div>
+
+<div id="resultScreen">
+  <div class="result-header">
+    <div class="result-header-top">
+      <a class="back-btn" href="./index.html"><i class="ti ti-arrow-left"></i> Grammar</a>
+      <a class="home-btn" href="../index.html"><i class="ti ti-home"></i> Main menu</a>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+      <span class="progress-label">10 / 10</span>
+    </div>
+  </div>
+  <div class="result-scroll">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+    <div class="result-title">Quiz complete!</div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="score-circle">
+      <div class="score-num" id="scoreNum"></div>
+      <div class="score-lbl">Your score</div>
+    </div>
+    <div class="result-stats">
+      <div class="rstat c"><div class="rstat-val" id="resCorrect">0</div><div class="rstat-lbl">Correct</div></div>
+      <div class="rstat w"><div class="rstat-val" id="resWrong">0</div><div class="rstat-lbl">Wrong</div></div>
+      <div class="rstat a"><div class="rstat-val" id="resAttempts">0</div><div class="rstat-lbl">Attempts</div></div>
+    </div>
+    <div class="result-btns">
+      <button class="btn-retry" onclick="retryQuiz()"><i class="ti ti-refresh"></i> Try again</button>
+      <button class="btn-back" onclick="window.location.href='./index.html'"><i class="ti ti-list"></i> Back to Grammar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://wfpphviaosfedotbivtb.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ';
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const tg = window.Telegram?.WebApp;
+  tg?.ready(); tg?.expand();
+
+  // accepted: array of accepted answers
+  const ALL_QUESTIONS = [
+    // ── present → past (regular verbs) ───────────────────────────
+    { q: 'We leave our flat at 7.30.', accepted: ['We left our flat at 7.30.','We left our flat at 7.30'], explanation: 'leave → <strong>left</strong> (irregular past simple).' },
+    { q: 'My grandparents don\'t use computers.', accepted: ["My grandparents didn't use computers.","My grandparents didn't use computers"], explanation: 'Negative past: <strong>didn\'t use</strong> (base verb, no -ed).' },
+    { q: 'They come to our house every month.', accepted: ['They came to our house every month.','They came to our house every month'], explanation: 'come → <strong>came</strong> (irregular past simple).' },
+    { q: 'Abdu doesn\'t meet his friends very often.', accepted: ["Abdu didn't meet his friends very often.","Abdu didn't meet his friends very often"], explanation: 'Negative past: <strong>didn\'t meet</strong> (base verb).' },
+    { q: 'I go to work by bus.', accepted: ['I went to work by bus.','I went to work by bus'], explanation: 'go → <strong>went</strong> (irregular past simple).' },
+    { q: 'She writes a diary every day.', accepted: ['She wrote a diary every day.','She wrote a diary every day'], explanation: 'write → <strong>wrote</strong> (irregular past simple).' },
+    { q: 'He plays music in the hospital.', accepted: ['He played music in the hospital.','He played music in the hospital'], explanation: 'play → <strong>played</strong> (regular, +ed).' },
+    { q: 'Deborah visits him in hospital.', accepted: ['Deborah visited him in hospital.','Deborah visited him in hospital'], explanation: 'visit → <strong>visited</strong> (regular, +ed).' },
+    { q: 'They sell their flat in London.', accepted: ['They sold their flat in London.','They sold their flat in London'], explanation: 'sell → <strong>sold</strong> (irregular past simple).' },
+    { q: 'She feels sick every morning.', accepted: ['She felt sick every morning.','She felt sick every morning'], explanation: 'feel → <strong>felt</strong> (irregular past simple).' },
+    { q: 'He gets good marks in his exams.', accepted: ['He got good marks in his exams.','He got good marks in his exams'], explanation: 'get → <strong>got</strong> (irregular past simple).' },
+    { q: 'Bob has an amazing memory.', accepted: ['Bob had an amazing memory.','Bob had an amazing memory'], explanation: 'have → <strong>had</strong> (irregular past simple).' },
+    { q: 'He remembers every day of his life.', accepted: ['He remembered every day of his life.','He remembered every day of his life'], explanation: 'remember → <strong>remembered</strong> (regular, +ed).' },
+    { q: 'They fall in love in London.', accepted: ['They fell in love in London.','They fell in love in London'], explanation: 'fall → <strong>fell</strong> (irregular past simple).' },
+    { q: 'Clive knows her face but not her name.', accepted: ['Clive knew her face but not her name.','Clive knew her face but not her name'], explanation: 'know → <strong>knew</strong> (irregular past simple).' },
+    { q: 'She says goodbye every time she leaves.', accepted: ['She said goodbye every time she left.','She said goodbye every time she left'], explanation: 'say → <strong>said</strong>, leave → <strong>left</strong> (both irregular).' },
+    { q: 'He sees her again and falls in love.', accepted: ['He saw her again and fell in love.','He saw her again and fell in love'], explanation: 'see → <strong>saw</strong>, fall → <strong>fell</strong> (both irregular).' },
+    { q: 'She meets her husband when she is five years old.', accepted: ['She met her husband when she was five years old.','She met her husband when she was five years old'], explanation: 'meet → <strong>met</strong>, is → <strong>was</strong> (both irregular).' },
+    { q: 'They go to the same school.', accepted: ['They went to the same school.','They went to the same school'], explanation: 'go → <strong>went</strong> (irregular past simple).' },
+    { q: 'He sees her in a clothes shop.', accepted: ['He saw her in a clothes shop.','He saw her in a clothes shop'], explanation: 'see → <strong>saw</strong> (irregular past simple).' },
+
+    // ── negative sentences ────────────────────────────────────────
+    { q: 'I don\'t want to come to work.', accepted: ["I didn't want to come to work.","I didn't want to come to work"], explanation: 'Past negative: <strong>didn\'t want</strong> (base verb).' },
+    { q: 'She doesn\'t sleep well.', accepted: ["She didn't sleep well.","She didn't sleep well"], explanation: 'Past negative: <strong>didn\'t sleep</strong> (base verb).' },
+    { q: 'He doesn\'t phone the office.', accepted: ["He didn't phone the office.","He didn't phone the office"], explanation: 'Past negative: <strong>didn\'t phone</strong> (base verb).' },
+    { q: 'I don\'t feel well.', accepted: ["I didn't feel well.","I didn't feel well"], explanation: 'Past negative: <strong>didn\'t feel</strong> (base verb).' },
+    { q: 'She doesn\'t go to the doctor.', accepted: ["She didn't go to the doctor.","She didn't go to the doctor"], explanation: 'Past negative: <strong>didn\'t go</strong> (base verb).' },
+    { q: 'He doesn\'t like the film.', accepted: ["He didn't like the film.","He didn't like the film"], explanation: 'Past negative: <strong>didn\'t like</strong> (base verb).' },
+    { q: 'They don\'t have a good time.', accepted: ["They didn't have a good time.","They didn't have a good time"], explanation: 'Past negative: <strong>didn\'t have</strong> (base verb).' },
+    { q: 'She doesn\'t forget her meeting.', accepted: ["She didn't forget her meeting.","She didn't forget her meeting"], explanation: 'Past negative: <strong>didn\'t forget</strong> (base verb).' },
+    { q: 'He doesn\'t lose his phone.', accepted: ["He didn't lose his phone.","He didn't lose his phone"], explanation: 'Past negative: <strong>didn\'t lose</strong> (base verb).' },
+    { q: 'I don\'t watch a horror film.', accepted: ["I didn't watch a horror film.","I didn't watch a horror film"], explanation: 'Past negative: <strong>didn\'t watch</strong> (base verb).' },
+
+    // ── questions ─────────────────────────────────────────────────
+    { q: 'Do you go to work by bus?', accepted: ['Did you go to work by bus?','Did you go to work by bus'], explanation: 'Past question: <strong>Did you go</strong>? (base verb, no -ed).' },
+    { q: 'Does Jaime see his sister?', accepted: ['Did Jaime see his sister?','Did Jaime see his sister'], explanation: 'Past question: <strong>Did Jaime see</strong>? (base verb).' },
+    { q: 'Do you watch TV at the weekend?', accepted: ['Did you watch TV at the weekend?','Did you watch TV at the weekend'], explanation: 'Past question: <strong>Did you watch</strong>? (base verb).' },
+    { q: 'Does she write emails every day?', accepted: ['Did she write emails every day?','Did she write emails every day'], explanation: 'Past question: <strong>Did she write</strong>? (base verb).' },
+    { q: 'Do they come to our house?', accepted: ['Did they come to our house?','Did they come to our house'], explanation: 'Past question: <strong>Did they come</strong>? (base verb).' },
+    { q: 'Does he meet his friends?', accepted: ['Did he meet his friends?','Did he meet his friends'], explanation: 'Past question: <strong>Did he meet</strong>? (base verb).' },
+    { q: 'Do you go on holiday?', accepted: ['Did you go on holiday?','Did you go on holiday'], explanation: 'Past question: <strong>Did you go</strong>? (base verb).' },
+    { q: 'Does she see her friends?', accepted: ['Did she see her friends?','Did she see her friends'], explanation: 'Past question: <strong>Did she see</strong>? (base verb).' },
+    { q: 'Do they leave early?', accepted: ['Did they leave early?','Did they leave early'], explanation: 'Past question: <strong>Did they leave</strong>? (base verb).' },
+    { q: 'Does Bob lose his phone?', accepted: ['Did Bob lose his phone?','Did Bob lose his phone'], explanation: 'Past question: <strong>Did Bob lose</strong>? (base verb).' },
+  ];
+
+  let questions=[], current=0, correctCount=0, answered=false, attemptNumber=1, userId=null;
+
+  async function getTelegramId(){
+    if(tg?.initDataUnsafe?.user) return String(tg.initDataUnsafe.user.id);
+    return localStorage.getItem('dev_tg_id')||'dev_user';
+  }
+
+  async function loadUser(){
+    try{
+      const tid=await getTelegramId();
+      const{data}=await db.from('exam_users').select('id').eq('telegram_id',tid).single();
+      userId=data?.id||null;
+      if(userId){
+        const{data:att}=await db.from('exam_quiz_attempts').select('id').eq('user_id',userId).eq('skill','grammar').eq('quiz_id',6);
+        attemptNumber=(att?.length||0)+1;
+      }
+    }catch(e){console.error(e);}
+  }
+
+  async function saveAttempt(score){
+    if(!userId)return;
+    try{
+      await db.from('exam_quiz_attempts').insert({user_id:userId,skill:'grammar',quiz_id:6,score});
+      const{data:prog}=await db.from('exam_progress').select('id,tasks_done').eq('user_id',userId).eq('skill','grammar').single();
+      if(prog){
+        await db.from('exam_progress').update({tasks_done:Math.max(prog.tasks_done,6),updated_at:new Date().toISOString()}).eq('id',prog.id);
+      }else{
+        await db.from('exam_progress').insert({user_id:userId,skill:'grammar',tasks_done:1,tasks_total:8});
+      }
+    }catch(e){console.error(e);}
+  }
+
+  function shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  }
+
+  function normalize(str){
+    return str.trim().toLowerCase()
+      .replace(/['']/g,"'")
+      .replace(/\s+/g,' ')
+      .replace(/\.$/,'');
+  }
+
+  function isCorrect(input, accepted){
+    const norm = normalize(input);
+    return accepted.some(a => normalize(a) === norm);
+  }
+
+  function startQuiz(){
+    questions=shuffle(ALL_QUESTIONS).slice(0,10);
+    current=0; correctCount=0; answered=false;
+    document.getElementById('quizScreen').style.display='flex';
+    document.getElementById('resultScreen').classList.remove('show');
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    answered=false;
+    const q=questions[current];
+    const pct=(current/10)*100;
+    document.getElementById('progressFill').style.width=pct+'%';
+    document.getElementById('progressLabel').textContent=current+' / 10';
+    document.getElementById('qtext').textContent=q.q;
+
+    const input=document.getElementById('answerInput');
+    input.value='';
+    input.className='answer-input';
+    input.readOnly=false;
+    input.style.height='auto';
+
+    document.getElementById('feedbackBox').className='feedback-box';
+    document.getElementById('checkBtn').style.display='flex';
+    document.getElementById('checkBtn').disabled=true;
+    document.getElementById('nextBtn').classList.remove('show');
+    document.getElementById('quizScroll').scrollTo({top:0,behavior:'smooth'});
+    setTimeout(()=>input.focus(),300);
+  }
+
+  const input = document.getElementById('answerInput');
+  input.addEventListener('input', function(){
+    this.style.height='auto';
+    this.style.height=this.scrollHeight+'px';
+    document.getElementById('checkBtn').disabled = this.value.trim().length === 0;
+  });
+
+  function checkAnswer(){
+    if(answered)return;
+    answered=true;
+    const input=document.getElementById('answerInput');
+    const q=questions[current];
+    const correct=isCorrect(input.value, q.accepted);
+    if(correct) correctCount++;
+
+    input.className='answer-input '+(correct?'correct':'wrong');
+    input.readOnly=true;
+
+    const fb=document.getElementById('feedbackBox');
+    fb.className='feedback-box show '+(correct?'correct-fb':'wrong-fb');
+    document.getElementById('fbIcon').textContent=correct?'✅':'❌';
+    document.getElementById('fbText').innerHTML=correct
+      ? `Great! ${q.explanation}`
+      : `The correct answer is: <strong>${q.accepted[0]}</strong><br><br>${q.explanation}`;
+
+    document.getElementById('checkBtn').style.display='none';
+    const nextBtn=document.getElementById('nextBtn');
+    nextBtn.classList.add('show');
+    nextBtn.innerHTML=current<9?'Next question <i class="ti ti-arrow-right"></i>':'See results <i class="ti ti-trophy"></i>';
+    setTimeout(()=>{document.getElementById('quizScroll').scrollTo({top:999,behavior:'smooth'});},150);
+  }
+
+  function nextQuestion(){
+    current++;
+    if(current>=10) showResult();
+    else renderQuestion();
+  }
+
+  async function showResult(){
+    const score=Math.round((correctCount/10)*100);
+    await saveAttempt(score);
+    document.getElementById('resultEmoji').textContent=score>=80?'🎉':score>=60?'👍':'💪';
+    document.getElementById('resultSub').textContent=`Past Simple II · Attempt ${attemptNumber}`;
+    document.getElementById('scoreNum').textContent=score+'%';
+    document.getElementById('resCorrect').textContent=correctCount;
+    document.getElementById('resWrong').textContent=10-correctCount;
+    document.getElementById('resAttempts').textContent=attemptNumber;
+    document.getElementById('quizScreen').style.display='none';
+    document.getElementById('resultScreen').classList.add('show');
+  }
+
+  function retryQuiz(){ attemptNumber++; startQuiz(); }
+
+  async function init(){ await loadUser(); startQuiz(); }
+  init();
+</script>
+</body>
+</html>
