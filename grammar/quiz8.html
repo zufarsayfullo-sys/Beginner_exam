@@ -86,7 +86,7 @@
   </div>
   <div class="scroll" id="quizScroll">
     <div class="qtopic">To Be Going To</div>
-    <div class="qlabel">Write the correct form of <em>be going to</em> in the gap.</div>
+    <div class="qlabel">Write the missing word(s) — <em>am / is / are / isn't / aren't</em> — to complete the sentence.</div>
     <div class="qtext" id="qtext"></div>
     <div class="input-label">Your answer</div>
     <input class="answer-input" id="answerInput" type="text" placeholder="Type here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
@@ -135,51 +135,61 @@
   const tg=window.Telegram?.WebApp;
   tg?.ready();tg?.expand();
   const ALL_QUESTIONS=[
-    {q:"I _____ be a volunteer in Guatemala next summer.",accepted:["am going to be","'m going to be"],explanation:"I → <strong>am going to</strong> + verb."},
-    {q:"I _____ travel to the Arctic next month.",accepted:["am going to travel","'m going to travel"],explanation:"I → <strong>am going to</strong> + verb."},
-    {q:"I _____ learn a new language next year.",accepted:["am going to learn","'m going to learn"],explanation:"I → <strong>am going to</strong> + verb."},
-    {q:"I _____ move abroad after I finish school.",accepted:["am going to move","'m going to move"],explanation:"I → <strong>am going to</strong> + verb."},
-    {q:"She _____ travel around Europe and sing.",accepted:["is going to travel","'s going to travel"],explanation:"She → <strong>is going to</strong> + verb."},
-    {q:"He _____ change jobs next month.",accepted:["is going to change","'s going to change"],explanation:"He → <strong>is going to</strong> + verb."},
-    {q:"Roxanne _____ go to Europe to sing.",accepted:["is going to go","'s going to go"],explanation:"Roxanne (she) → <strong>is going to</strong> + verb."},
-    {q:"The café _____ open to the public in eight months.",accepted:["is going to open","'s going to open"],explanation:"The café (it) → <strong>is going to</strong> + verb."},
-    {q:"Tom _____ teach English in the Maldives.",accepted:["is going to teach","'s going to teach"],explanation:"Tom (he) → <strong>is going to</strong> + verb."},
-    {q:"She _____ have a baby next spring.",accepted:["is going to have","'s going to have"],explanation:"She → <strong>is going to</strong> + verb."},
-    {q:"Shaun _____ travel to the Arctic next month.",accepted:["is going to travel","'s going to travel"],explanation:"Shaun (he) → <strong>is going to</strong> + verb."},
-    {q:"They _____ visit five cities in five different countries.",accepted:["are going to visit","'re going to visit"],explanation:"They → <strong>are going to</strong> + verb."},
-    {q:"We _____ write a blog about our trip.",accepted:["are going to write","'re going to write"],explanation:"We → <strong>are going to</strong> + verb."},
-    {q:"We _____ need money for this project.",accepted:["are going to need","'re going to need"],explanation:"We → <strong>are going to</strong> + verb."},
-    {q:"They _____ study the environment in Alaska.",accepted:["are going to study","'re going to study"],explanation:"They → <strong>are going to</strong> + verb."},
-    {q:"You _____ live in the Maldives for a long time.",accepted:["are going to live","'re going to live"],explanation:"You → <strong>are going to</strong> + verb."},
-    {q:"We _____ build a new front for the café.",accepted:["are going to build","'re going to build"],explanation:"We → <strong>are going to</strong> + verb."},
-    {q:"She _____ take photos on the trip. (negative)",accepted:["is not going to take","isn't going to take"],explanation:"She (negative) → <strong>isn't going to</strong> + verb."},
-    {q:"He _____ take mobile phones or computers. (negative)",accepted:["is not going to take","isn't going to take"],explanation:"He (negative) → <strong>isn't going to</strong> + verb."},
-    {q:"She _____ go to the Maldives as a holiday. (negative)",accepted:["is not going to go","isn't going to go"],explanation:"She (negative) → <strong>isn't going to</strong> + verb."},
-    {q:"We _____ use the money for hotels or food. (negative)",accepted:["are not going to use","aren't going to use"],explanation:"We (negative) → <strong>aren't going to</strong> + verb."},
-    {q:"They _____ stay in a hotel — they have a flat. (negative)",accepted:["are not going to stay","aren't going to stay"],explanation:"They (negative) → <strong>aren't going to</strong> + verb."},
-    {q:"We _____ be there for more than three weeks. (negative)",accepted:["are not going to be","aren't going to be"],explanation:"We (negative) → <strong>aren't going to</strong> + verb."},
-    {q:"You _____ visit your parents this weekend. (negative)",accepted:["are not going to visit","aren't going to visit"],explanation:"You (negative) → <strong>aren't going to</strong> + verb."},
-    {q:"_____ she going to travel to Europe?",accepted:["Is"],explanation:"He/She/It question → <strong>Is</strong> + subject + going to + verb?"},
-    {q:"_____ you going to go with her to the Maldives?",accepted:["Are"],explanation:"You/We/They question → <strong>Are</strong> + subject + going to + verb?"},
-    {q:"_____ Tom going to change jobs?",accepted:["Is"],explanation:"He/She/It question → <strong>Is</strong> + subject + going to + verb?"},
-    {q:"_____ they going to visit five cities?",accepted:["Are"],explanation:"They question → <strong>Are</strong> + subject + going to + verb?"},
-    {q:"_____ you going to cook dinner tonight?",accepted:["Are"],explanation:"You question → <strong>Are</strong> + subject + going to + verb?"},
-    {q:"Where _____ you going to live in the Maldives?",accepted:["are"],explanation:"Wh- question with you → <strong>are</strong> + subject + going to + verb?"},
-    {q:"What _____ you going to do there?",accepted:["are"],explanation:"Wh- question with you → <strong>are</strong> + subject + going to + verb?"},
-    {q:"When _____ he going to call?",accepted:["is"],explanation:"Wh- question with he → <strong>is</strong> + subject + going to + verb?"},
-    {q:"Who _____ you going to see in Europe?",accepted:["are"],explanation:"Wh- question with you → <strong>are</strong> + subject + going to + verb?"},
+    // am going to
+    {q:"I _____ going to be a volunteer in Guatemala next summer.",accepted:["am"],explanation:"Subject <em>I</em> → <strong>am</strong> going to + verb."},
+    {q:"I _____ going to travel to the Arctic next month.",accepted:["am"],explanation:"Subject <em>I</em> → <strong>am</strong> going to + verb."},
+    {q:"I _____ going to learn a new language next year.",accepted:["am"],explanation:"Subject <em>I</em> → <strong>am</strong> going to + verb."},
+    {q:"I _____ going to move abroad after I finish school.",accepted:["am"],explanation:"Subject <em>I</em> → <strong>am</strong> going to + verb."},
+    {q:"I _____ going to study international relations at university.",accepted:["am"],explanation:"Subject <em>I</em> → <strong>am</strong> going to + verb."},
+    // is going to
+    {q:"She _____ going to travel around Europe next year.",accepted:["is"],explanation:"Subject <em>she</em> → <strong>is</strong> going to + verb."},
+    {q:"He _____ going to change jobs next month.",accepted:["is"],explanation:"Subject <em>he</em> → <strong>is</strong> going to + verb."},
+    {q:"Roxanne _____ going to sing in five different countries.",accepted:["is"],explanation:"<em>Roxanne</em> = she → <strong>is</strong> going to + verb."},
+    {q:"The café _____ going to open to the public in eight months.",accepted:["is"],explanation:"<em>The café</em> = it → <strong>is</strong> going to + verb."},
+    {q:"Tom _____ going to teach English in the Maldives.",accepted:["is"],explanation:"<em>Tom</em> = he → <strong>is</strong> going to + verb."},
+    {q:"She _____ going to have a baby next spring.",accepted:["is"],explanation:"Subject <em>she</em> → <strong>is</strong> going to + verb."},
+    {q:"Oliver _____ going to email the hotel information next week.",accepted:["is"],explanation:"<em>Oliver</em> = he → <strong>is</strong> going to + verb."},
+    // are going to
+    {q:"They _____ going to visit five cities in five different countries.",accepted:["are"],explanation:"Subject <em>they</em> → <strong>are</strong> going to + verb."},
+    {q:"We _____ going to write a blog about our trip.",accepted:["are"],explanation:"Subject <em>we</em> → <strong>are</strong> going to + verb."},
+    {q:"They _____ going to study the environment in Alaska.",accepted:["are"],explanation:"Subject <em>they</em> → <strong>are</strong> going to + verb."},
+    {q:"You _____ going to live in the Maldives for a long time.",accepted:["are"],explanation:"Subject <em>you</em> → <strong>are</strong> going to + verb."},
+    {q:"We _____ going to build a new front for the café.",accepted:["are"],explanation:"Subject <em>we</em> → <strong>are</strong> going to + verb."},
+    {q:"My friend and I _____ going to join a group of scientists.",accepted:["are"],explanation:"<em>My friend and I</em> = we → <strong>are</strong> going to + verb."},
+    {q:"Rebecca and her friends _____ going to visit different countries.",accepted:["are"],explanation:"<em>Rebecca and her friends</em> = they → <strong>are</strong> going to + verb."},
+    // isn't going to (negative)
+    {q:"She _____ going to take photos — she forgot her camera.",accepted:["isn't","is not"],explanation:"<em>She</em> negative → <strong>isn't</strong> going to + verb."},
+    {q:"He _____ going to bring mobile phones or computers.",accepted:["isn't","is not"],explanation:"<em>He</em> negative → <strong>isn't</strong> going to + verb."},
+    {q:"She _____ going to treat the trip as a holiday.",accepted:["isn't","is not"],explanation:"<em>She</em> negative → <strong>isn't</strong> going to + verb."},
+    {q:"Tom _____ going to work as an engineer any more.",accepted:["isn't","is not"],explanation:"<em>Tom</em> = he, negative → <strong>isn't</strong> going to + verb."},
+    {q:"The project _____ going to cost very much — it's free!",accepted:["isn't","is not"],explanation:"<em>The project</em> = it, negative → <strong>isn't</strong> going to + verb."},
+    // aren't going to (negative)
+    {q:"We _____ going to spend the money on hotels or food.",accepted:["aren't","are not"],explanation:"<em>We</em> negative → <strong>aren't</strong> going to + verb."},
+    {q:"They _____ going to stay in a hotel — they have a flat.",accepted:["aren't","are not"],explanation:"<em>They</em> negative → <strong>aren't</strong> going to + verb."},
+    {q:"We _____ going to be there for more than three weeks.",accepted:["aren't","are not"],explanation:"<em>We</em> negative → <strong>aren't</strong> going to + verb."},
+    {q:"You _____ going to visit your parents this weekend.",accepted:["aren't","are not"],explanation:"<em>You</em> negative → <strong>aren't</strong> going to + verb."},
+    // questions — Is / Are
+    {q:"_____ she going to travel to Europe?",accepted:["Is"],explanation:"<em>She</em> question → <strong>Is</strong> she going to + verb?"},
+    {q:"_____ you going to go with her to the Maldives?",accepted:["Are"],explanation:"<em>You</em> question → <strong>Are</strong> you going to + verb?"},
+    {q:"_____ Tom going to change jobs?",accepted:["Is"],explanation:"<em>Tom</em> = he → <strong>Is</strong> Tom going to + verb?"},
+    {q:"_____ they going to visit five cities?",accepted:["Are"],explanation:"<em>They</em> question → <strong>Are</strong> they going to + verb?"},
+    {q:"_____ you going to cook dinner tonight?",accepted:["Are"],explanation:"<em>You</em> question → <strong>Are</strong> you going to + verb?"},
+    {q:"_____ Shaun going to walk 150 kilometres?",accepted:["Is"],explanation:"<em>Shaun</em> = he → <strong>Is</strong> Shaun going to + verb?"},
+    {q:"_____ the group going to write a blog?",accepted:["Is"],explanation:"<em>The group</em> = it/they, singular → <strong>Is</strong> the group going to + verb?"},
+    // wh- questions
+    {q:"Where _____ you going to live in the Maldives?",accepted:["are"],explanation:"Wh- question, <em>you</em> → <strong>are</strong> you going to + verb?"},
+    {q:"What _____ you going to do when you arrive?",accepted:["are"],explanation:"Wh- question, <em>you</em> → <strong>are</strong> you going to + verb?"},
+    {q:"When _____ he going to call back?",accepted:["is"],explanation:"Wh- question, <em>he</em> → <strong>is</strong> he going to + verb?"},
+    {q:"Who _____ you going to see in Europe?",accepted:["are"],explanation:"Wh- question, <em>you</em> → <strong>are</strong> you going to + verb?"},
+    {q:"How long _____ they going to stay in Alaska?",accepted:["are"],explanation:"Wh- question, <em>they</em> → <strong>are</strong> they going to + verb?"},
+    // short answers
     {q:"A: Are you going to live in a hotel? B: No, we _____ .",accepted:["aren't","are not"],explanation:"Negative short answer → <strong>No, we aren't</strong>."},
     {q:"A: Is Tom going to change jobs? B: Yes, he _____ .",accepted:["is"],explanation:"Positive short answer → <strong>Yes, he is</strong>."},
-    {q:"A: Are you going to go with her? B: Yes, I _____ .",accepted:["am"],explanation:"Positive short answer with I → <strong>Yes, I am</strong>."},
+    {q:"A: Are you going to go with her? B: Yes, I _____ .",accepted:["am"],explanation:"Positive short answer with <em>I</em> → <strong>Yes, I am</strong>."},
     {q:"A: Is she going to be a doctor? B: No, she _____ .",accepted:["isn't","is not"],explanation:"Negative short answer → <strong>No, she isn't</strong>."},
     {q:"A: Are they going to buy a house? B: No, they _____ .",accepted:["aren't","are not"],explanation:"Negative short answer → <strong>No, they aren't</strong>."},
-    {q:"Oliver _____ email you the information about the hotel next week.",accepted:["is going to email","'s going to email"],explanation:"Oliver (he) → <strong>is going to</strong> + verb."},
-    {q:"The students _____ visit Italy next month.",accepted:["are going to visit","'re going to visit"],explanation:"They → <strong>are going to</strong> + verb."},
-    {q:"Rebecca and her friends _____ visit different countries in the future.",accepted:["are going to visit","'re going to visit"],explanation:"They → <strong>are going to</strong> + verb."},
-    {q:"My friend and I _____ join a group of scientists.",accepted:["are going to join","'re going to join"],explanation:"My friend and I (we) → <strong>are going to</strong> + verb."},
-    {q:"With the money, we _____ pay for renovations and equipment.",accepted:["are going to pay","'re going to pay"],explanation:"We → <strong>are going to</strong> + verb."},
-    {q:"My wife's parents _____ buy a new car next weekend.",accepted:["are going to buy","'re going to buy"],explanation:"They → <strong>are going to</strong> + verb."},
-    {q:"I _____ probably not move abroad this year.",accepted:["am probably not going to","'m probably not going to","am not going to","'m not going to"],explanation:"I (negative) → <strong>am not going to</strong> / <strong>'m probably not going to</strong>."},
+    {q:"A: Is Roxanne going to sing in Europe? B: Yes, she _____ .",accepted:["is"],explanation:"Positive short answer → <strong>Yes, she is</strong>."},
+    {q:"A: Are you going to raise the money? B: Yes, we _____ .",accepted:["are"],explanation:"Positive short answer → <strong>Yes, we are</strong>."},
   ];
   let questions=[],current=0,correctCount=0,answered=false,attemptNumber=1,userId=null;
   async function getTelegramId(){if(tg?.initDataUnsafe?.user)return String(tg.initDataUnsafe.user.id);return localStorage.getItem('dev_tg_id')||'dev_user';}
