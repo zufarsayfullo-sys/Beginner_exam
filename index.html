@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ExamPrep</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    :root {
+      --purple-dark:  #26215C;
+      --purple-main:  #534AB7;
+      --purple-mid:   #7F77DD;
+      --purple-light: #CECBF6;
+      --purple-pale:  #EEEDFE;
+      --teal-dark:    #085041;
+      --teal-main:    #0F6E56;
+      --teal-light:   #9FE1CB;
+      --teal-pale:    #E1F5EE;
+      --blue-dark:    #0C447C;
+      --blue-main:    #185FA5;
+      --blue-light:   #B5D4F4;
+      --blue-pale:    #E6F1FB;
+      --coral-dark:   #712B13;
+      --coral-main:   #993C1D;
+      --coral-light:  #F5C4B3;
+      --coral-pale:   #FAECE7;
+      --amber-dark:   #633806;
+      --amber-main:   #BA7517;
+      --amber-light:  #FAC775;
+      --amber-pale:   #FAEEDA;
+      --green-dark:   #27500A;
+      --green-main:   #3B6D11;
+      --green-light:  #C0DD97;
+      --green-pale:   #EAF3DE;
+      --bg:           #F0EEF8;
+      --radius:       14px;
+      --radius-sm:    10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; font-family: 'DM Sans', sans-serif; background: var(--bg); }
+
+    /* SPLASH */
+    #splash {
+      position: fixed; inset: 0; background: var(--purple-main);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      z-index: 100; transition: opacity 0.4s ease;
+    }
+    #splash.hide { opacity: 0; pointer-events: none; }
+    .splash-icon { font-size: 48px; color: #fff; }
+    .splash-name { font-size: 22px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+    .splash-sub { font-size: 13px; color: var(--purple-light); }
+    .splash-spinner {
+      width: 28px; height: 28px; border: 2.5px solid var(--purple-light);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin-top: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* APP SHELL */
+    #app { height: 100%; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.3s ease; }
+    #app.show { opacity: 1; }
+
+    /* HEADER */
+    .header {
+      background: var(--purple-main); padding: 12px 18px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .header-left .app-name {
+      font-size: 18px; font-weight: 600; color: #fff;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .header-left .app-name i { font-size: 20px; color: var(--purple-light); }
+    .header-left .greeting { font-size: 12px; color: var(--purple-light); margin-top: 2px; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--purple-light); display: flex; align-items: center;
+      justify-content: center; font-size: 13px; font-weight: 600; color: var(--purple-dark);
+      flex-shrink: 0; cursor: pointer;
+    }
+
+    /* SCROLL AREA */
+    .scroll { flex: 1; overflow-y: auto; padding: 14px 14px 0; -webkit-overflow-scrolling: touch; }
+
+    /* STREAK BANNER */
+    .streak-banner {
+      background: #fff; border-radius: var(--radius); padding: 13px 15px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; border: 0.5px solid var(--purple-light);
+      animation: fadeUp 0.4s ease both; animation-delay: 0.05s;
+    }
+    .streak-left { display: flex; align-items: center; gap: 10px; }
+    .streak-fire { font-size: 26px; line-height: 1; }
+    .streak-title { font-size: 14px; font-weight: 600; color: var(--purple-dark); }
+    .streak-sub { font-size: 11px; color: var(--purple-main); margin-top: 2px; }
+    .streak-pill {
+      background: var(--purple-main); color: #fff;
+      font-size: 12px; font-weight: 500; padding: 5px 13px; border-radius: 20px;
+    }
+
+    /* STATS GRID */
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .scard {
+      border-radius: var(--radius-sm); padding: 13px 14px;
+      animation: fadeUp 0.4s ease both;
+    }
+    .scard:nth-child(1) { animation-delay: 0.10s; background: var(--purple-main); }
+    .scard:nth-child(2) { animation-delay: 0.13s; background: var(--teal-main); }
+    .scard:nth-child(3) { animation-delay: 0.16s; background: var(--blue-main); }
+    .scard:nth-child(4) { animation-delay: 0.19s; background: var(--amber-main); }
+    .scard-label { font-size: 11px; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+    .scard-val { font-size: 22px; font-weight: 600; color: #fff; }
+    .scard-sub { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 3px; }
+
+    /* SECTION HEAD */
+    .sec-head {
+      font-size: 11px; font-weight: 600; color: var(--purple-main);
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px;
+      animation: fadeUp 0.4s ease both; animation-delay: 0.22s;
+    }
+
+    /* SKILL CARDS */
+    .feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-bottom: 90px; }
+    .fcard {
+      border-radius: var(--radius); padding: 14px; display: flex;
+      flex-direction: column; gap: 10px; cursor: pointer;
+      text-decoration: none;
+      animation: fadeUp 0.4s ease both;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .fcard:active { transform: scale(0.96); opacity: 0.85; }
+    .fcard:nth-child(1) { animation-delay: 0.25s; }
+    .fcard:nth-child(2) { animation-delay: 0.28s; }
+    .fcard:nth-child(3) { animation-delay: 0.31s; }
+    .fcard:nth-child(4) { animation-delay: 0.34s; }
+    .fcard:nth-child(5) { animation-delay: 0.37s; }
+    .fcard:nth-child(6) { animation-delay: 0.40s; }
+
+    .fcard-head { display: flex; align-items: center; justify-content: space-between; }
+    .ficon { width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0; }
+    .ftask { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
+    .fname { font-size: 14px; font-weight: 600; }
+    .fdesc { font-size: 11px; line-height: 1.45; margin-top: 2px; }
+    .fprog-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .fprog-lbl { font-size: 10px; }
+    .fprog-pct { font-size: 10px; font-weight: 600; }
+    .fbar { height: 4px; border-radius: 2px; overflow: hidden; }
+    .fbar-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+
+    .gram  { background: var(--purple-pale); }
+    .gram .fname { color: var(--purple-dark); } .gram .fdesc { color: var(--purple-main); }
+    .gram .ficon { background: var(--purple-main); color: #fff; }
+    .gram .ftask { background: var(--purple-light); color: var(--purple-dark); }
+    .gram .fprog-lbl { color: var(--purple-main); } .gram .fprog-pct { color: var(--purple-dark); }
+    .gram .fbar { background: var(--purple-light); } .gram .fbar-fill { background: var(--purple-main); }
+
+    .vocab { background: var(--teal-pale); }
+    .vocab .fname { color: var(--teal-dark); } .vocab .fdesc { color: var(--teal-main); }
+    .vocab .ficon { background: var(--teal-main); color: #fff; }
+    .vocab .ftask { background: var(--teal-light); color: var(--teal-dark); }
+    .vocab .fprog-lbl { color: var(--teal-main); } .vocab .fprog-pct { color: var(--teal-dark); }
+    .vocab .fbar { background: var(--teal-light); } .vocab .fbar-fill { background: var(--teal-main); }
+
+    .write { background: var(--blue-pale); }
+    .write .fname { color: var(--blue-dark); } .write .fdesc { color: var(--blue-main); }
+    .write .ficon { background: var(--blue-main); color: #fff; }
+    .write .ftask { background: var(--blue-light); color: var(--blue-dark); }
+    .write .fprog-lbl { color: var(--blue-main); } .write .fprog-pct { color: var(--blue-dark); }
+    .write .fbar { background: var(--blue-light); } .write .fbar-fill { background: var(--blue-main); }
+
+    .speak { background: var(--coral-pale); }
+    .speak .fname { color: var(--coral-dark); } .speak .fdesc { color: var(--coral-main); }
+    .speak .ficon { background: var(--coral-main); color: #fff; }
+    .speak .ftask { background: var(--coral-light); color: var(--coral-dark); }
+    .speak .fprog-lbl { color: var(--coral-main); } .speak .fprog-pct { color: var(--coral-dark); }
+    .speak .fbar { background: var(--coral-light); } .speak .fbar-fill { background: var(--coral-main); }
+
+    .read  { background: var(--amber-pale); }
+    .read .fname { color: var(--amber-dark); } .read .fdesc { color: var(--amber-main); }
+    .read .ficon { background: var(--amber-main); color: #fff; }
+    .read .ftask { background: var(--amber-light); color: var(--amber-dark); }
+    .read .fprog-lbl { color: var(--amber-main); } .read .fprog-pct { color: var(--amber-dark); }
+    .read .fbar { background: var(--amber-light); } .read .fbar-fill { background: var(--amber-main); }
+
+    .listn { background: var(--green-pale); }
+    .listn .fname { color: var(--green-dark); } .listn .fdesc { color: var(--green-main); }
+    .listn .ficon { background: var(--green-main); color: #fff; }
+    .listn .ftask { background: var(--green-light); color: var(--green-dark); }
+    .listn .fprog-lbl { color: var(--green-main); } .listn .fprog-pct { color: var(--green-dark); }
+    .listn .fbar { background: var(--green-light); } .listn .fbar-fill { background: var(--green-main); }
+
+    /* BOTTOM NAV */
+    .bottomnav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 0.5px solid var(--purple-light);
+      display: flex; padding: 8px 0 max(14px, env(safe-area-inset-bottom));
+      z-index: 50;
+    }
+    .bnav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding-top: 2px; }
+    .bnav-item i { font-size: 22px; color: #B4B2A9; transition: color 0.2s; }
+    .bnav-item.on i { color: var(--purple-main); }
+    .bnav-label { font-size: 9px; color: #B4B2A9; }
+    .bnav-item.on .bnav-label { color: var(--purple-main); font-weight: 600; }
+    .bnav-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--purple-main); margin: 0 auto; margin-top: -2px; opacity: 0; }
+    .bnav-item.on .bnav-dot { opacity: 1; }
+
+    /* COMING SOON TOAST */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #1a1a2e; color: #fff; font-size: 13px; font-weight: 500;
+      padding: 10px 20px; border-radius: 20px; white-space: nowrap;
+      opacity: 0; transition: all 0.25s ease; pointer-events: none; z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* SCROLLBAR */
+    .scroll::-webkit-scrollbar { width: 0; }
+  </style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <i class="ti ti-school splash-icon"></i>
+  <div class="splash-name">ExamPrep</div>
+  <div class="splash-sub">Loading your progress...</div>
+  <div class="splash-spinner"></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="app-name"><i class="ti ti-school"></i> ExamPrep</div>
+      <div class="greeting" id="greeting">Welcome back!</div>
+    </div>
+    <div class="avatar" id="avatarEl">?</div>
+  </div>
+
+  <div class="scroll" id="scrollArea">
+    <div class="streak-banner">
+      <div class="streak-left">
+        <div class="streak-fire">🔥</div>
+        <div>
+          <div class="streak-title" id="streakTitle">0-day streak</div>
+          <div class="streak-sub">keep it up!</div>
+        </div>
+      </div>
+      <div class="streak-pill" id="streakXP">+0 XP</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="scard">
+        <div class="scard-label">Total XP</div>
+        <div class="scard-val" id="statXP">—</div>
+        <div class="scard-sub" id="statXPSub">loading...</div>
+      </div>
+      <div class="scard">
+        <div class="scard-label">Tasks done</div>
+        <div class="scard-val" id="statTasks">—</div>
+        <div class="scard-sub">this month</div>
+      </div>
+      <div class="scard">
+        <div class="scard-label">Accuracy</div>
+        <div class="scard-val" id="statAcc">—</div>
+        <div class="scard-sub">avg score</div>
+      </div>
+      <div class="scard">
+        <div class="scard-label">Quiz rank</div>
+        <div class="scard-val" id="statRank">—</div>
+        <div class="scard-sub">in class</div>
+      </div>
+    </div>
+
+    <div class="sec-head">Choose a skill</div>
+
+    <div class="feat-grid">
+      <a class="fcard gram" href="./grammar/index.html">
+        <div class="fcard-head">
+          <div class="ficon"><i class="ti ti-pencil-check"></i></div>
+          <span class="ftask" id="prog-grammar">0 / 0</span>
+        </div>
+        <div>
+          <div class="fname">Grammar</div>
+          <div class="fdesc">Tenses, structure, articles</div>
+        </div>
+        <div>
+          <div class="fprog-row"><span class="fprog-lbl">Progress</span><span class="fprog-pct" id="pct-grammar">0%</span></div>
+          <div class="fbar"><div class="fbar-fill" id="bar-grammar" style="width:0%"></div></div>
+        </div>
+      </a>
+
+      <a class="fcard vocab" href="./vocabulary/index.html">
+        <div class="fcard-head">
+          <div class="ficon"><i class="ti ti-cards"></i></div>
+          <span class="ftask" id="prog-vocabulary">0 / 0</span>
+        </div>
+        <div>
+          <div class="fname">Vocabulary</div>
+          <div class="fdesc">Word sets, collocations</div>
+        </div>
+        <div>
+          <div class="fprog-row"><span class="fprog-lbl">Progress</span><span class="fprog-pct" id="pct-vocabulary">0%</span></div>
+          <div class="fbar"><div class="fbar-fill" id="bar-vocabulary" style="width:0%"></div></div>
+        </div>
+      </a>
+
+      <a class="fcard write" href="./writing/index.html">
+        <div class="fcard-head">
+          <div class="ficon"><i class="ti ti-writing"></i></div>
+          <span class="ftask" id="prog-writing">0 / 0</span>
+        </div>
+        <div>
+          <div class="fname">Writing</div>
+          <div class="fdesc">Essays, letters, reports</div>
+        </div>
+        <div>
+          <div class="fprog-row"><span class="fprog-lbl">Progress</span><span class="fprog-pct" id="pct-writing">0%</span></div>
+          <div class="fbar"><div class="fbar-fill" id="bar-writing" style="width:0%"></div></div>
+        </div>
+      </a>
+
+      <a class="fcard speak" href="./speaking/index.html">
+        <div class="fcard-head">
+          <div class="ficon"><i class="ti ti-microphone"></i></div>
+          <span class="ftask" id="prog-speaking">0 / 0</span>
+        </div>
+        <div>
+          <div class="fname">Speaking</div>
+          <div class="fdesc">Cue cards, discussions</div>
+        </div>
+        <div>
+          <div class="fprog-row"><span class="fprog-lbl">Progress</span><span class="fprog-pct" id="pct-speaking">0%</span></div>
+          <div class="fbar"><div class="fbar-fill" id="bar-speaking" style="width:0%"></div></div>
+        </div>
+      </a>
+
+      <a class="fcard read" href="./reading/index.html">
+        <div class="fcard-head">
+          <div class="ficon"><i class="ti ti-book-2"></i></div>
+          <span class="ftask" id="prog-reading">0 / 0</span>
+        </div>
+        <div>
+          <div class="fname">Reading</div>
+          <div class="fdesc">Passages, comprehension</div>
+        </div>
+        <div>
+          <div class="fprog-row"><span class="fprog-lbl">Progress</span><span class="fprog-pct" id="pct-reading">0%</span></div>
+          <div class="fbar"><div class="fbar-fill" id="bar-reading" style="width:0%"></div></div>
+        </div>
+      </a>
+
+      <a class="fcard listn" href="./listening/index.html">
+        <div class="fcard-head">
+          <div class="ficon"><i class="ti ti-headphones"></i></div>
+          <span class="ftask" id="prog-listening">0 / 0</span>
+        </div>
+        <div>
+          <div class="fname">Listening</div>
+          <div class="fdesc">Audio tasks, note-taking</div>
+        </div>
+        <div>
+          <div class="fprog-row"><span class="fprog-lbl">Progress</span><span class="fprog-pct" id="pct-listening">0%</span></div>
+          <div class="fbar"><div class="fbar-fill" id="bar-listening" style="width:0%"></div></div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <nav class="bottomnav">
+    <div class="bnav-item on" data-tab="home">
+      <i class="ti ti-home"></i>
+      <div class="bnav-dot"></div>
+      <span class="bnav-label">Home</span>
+    </div>
+    <div class="bnav-item" data-tab="tasks">
+      <i class="ti ti-books"></i>
+      <div class="bnav-dot"></div>
+      <span class="bnav-label">Tasks</span>
+    </div>
+    <div class="bnav-item" data-tab="statistics">
+      <i class="ti ti-chart-bar"></i>
+      <div class="bnav-dot"></div>
+      <span class="bnav-label">Statistics</span>
+    </div>
+    <div class="bnav-item" data-tab="quiz">
+      <i class="ti ti-tournament"></i>
+      <div class="bnav-dot"></div>
+      <span class="bnav-label">Quiz</span>
+    </div>
+    <div class="bnav-item" data-tab="profile">
+      <i class="ti ti-user"></i>
+      <div class="bnav-dot"></div>
+      <span class="bnav-label">Profile</span>
+    </div>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const SUPABASE_URL  = 'https://wfpphviaosfedotbivtb.supabase.co';
+  const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ';
+  const db            = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const tg            = window.Telegram?.WebApp;
+
+  const SKILLS = ['grammar','vocabulary','writing','speaking','reading','listening'];
+
+  tg?.ready();
+  tg?.expand();
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function initials(name) {
+    if (!name) return '?';
+    return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  }
+
+  function setProgress(skill, done, total) {
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    const el = document.getElementById('prog-' + skill);
+    const pctEl = document.getElementById('pct-' + skill);
+    const barEl = document.getElementById('bar-' + skill);
+    if (el) el.textContent = done + ' / ' + total;
+    if (pctEl) pctEl.textContent = pct + '%';
+    if (barEl) barEl.style.width = pct + '%';
+  }
+
+  async function getOrCreateUser(telegramId, firstName, lastName, username) {
+    const { data: existing } = await db
+      .from('exam_users')
+      .select('*')
+      .eq('telegram_id', telegramId)
+      .single();
+
+    if (existing) return existing;
+
+    const { data: created } = await db
+      .from('exam_users')
+      .insert({ telegram_id: telegramId, first_name: firstName, last_name: lastName, username })
+      .select()
+      .single();
+
+    return created;
+  }
+
+  async function loadProgress(userId) {
+    const { data } = await db
+      .from('exam_progress')
+      .select('skill, tasks_done, tasks_total')
+      .eq('user_id', userId);
+
+    if (!data) return;
+    data.forEach(row => setProgress(row.skill, row.tasks_done, row.tasks_total));
+  }
+
+  async function loadStats(userId) {
+    const { data: user } = await db
+      .from('exam_users')
+      .select('xp, streak, weekly_xp, accuracy')
+      .eq('id', userId)
+      .single();
+
+    if (user) {
+      document.getElementById('statXP').textContent    = (user.xp || 0).toLocaleString();
+      document.getElementById('statXPSub').textContent = '↑ ' + (user.weekly_xp || 0) + ' this week';
+      document.getElementById('statAcc').textContent   = (user.accuracy || 0) + '%';
+      document.getElementById('streakTitle').textContent = (user.streak || 0) + '-day streak!';
+      document.getElementById('streakXP').textContent  = '+' + (user.weekly_xp || 0) + ' XP';
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const { count } = await db
+      .from('exam_progress')
+      .select('tasks_done', { count: 'exact' })
+      .eq('user_id', userId)
+      .gte('updated_at', startOfMonth);
+    document.getElementById('statTasks').textContent = count || 0;
+
+    const { data: rankData } = await db
+      .from('exam_users')
+      .select('id, xp')
+      .order('xp', { ascending: false });
+    if (rankData) {
+      const rank = rankData.findIndex(u => u.id === userId) + 1;
+      document.getElementById('statRank').textContent = rank > 0 ? '#' + rank : '—';
+    }
+  }
+
+  async function init() {
+    let telegramId, firstName, lastName, username;
+
+    if (tg?.initDataUnsafe?.user) {
+      const u = tg.initDataUnsafe.user;
+      telegramId = String(u.id);
+      firstName  = u.first_name || '';
+      lastName   = u.last_name  || '';
+      username   = u.username   || '';
+    } else {
+      telegramId = 'dev_' + Math.random().toString(36).slice(2,8);
+      firstName  = 'Dev';
+      lastName   = 'User';
+      username   = 'devuser';
+    }
+
+    const displayName = firstName + (lastName ? ' ' + lastName : '');
+    document.getElementById('greeting').textContent = 'Hi ' + firstName + ' — ready to practice?';
+    document.getElementById('avatarEl').textContent = initials(displayName);
+
+    try {
+      const user = await getOrCreateUser(telegramId, firstName, lastName, username);
+      if (user) {
+        await Promise.all([loadProgress(user.id), loadStats(user.id)]);
+      }
+    } catch (e) {
+      console.error('Supabase error:', e);
+    }
+
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('app').classList.add('show');
+  }
+
+  document.querySelectorAll('.bnav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const tab = item.dataset.tab;
+      document.querySelectorAll('.bnav-item').forEach(i => i.classList.remove('on'));
+      item.classList.add('on');
+      const NAV_ROUTES = { quiz: './quiz/index.html' };
+      if (NAV_ROUTES[tab]) { window.location.href = NAV_ROUTES[tab]; return; }
+      if (tab !== 'home') {
+        showToast('Coming soon: ' + tab.charAt(0).toUpperCase() + tab.slice(1));
+        setTimeout(() => {
+          document.querySelector('[data-tab="home"]').classList.add('on');
+          item.classList.remove('on');
+        }, 2200);
+      }
+    });
+  });
+
+  document.querySelectorAll('.fcard').forEach(card => {
+    card.addEventListener('click', e => {
+      const href = card.getAttribute('href');
+      if (!href || href === '#') {
+        e.preventDefault();
+        showToast('Coming soon!');
+      }
+    });
+  });
+
+  init();
+</script>
+</body>
+</html>
