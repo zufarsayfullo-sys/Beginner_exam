@@ -411,6 +411,38 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- PROFILE PANEL -->
+<div id="profilePanel" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:60;flex-direction:column;">
+  <div style="background:var(--purple-main);padding:10px 18px 28px;text-align:center;flex-shrink:0;">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+      <div onclick="closeProfile()" style="color:var(--purple-light);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:4px;">
+        <i class="ti ti-x" style="font-size:16px;"></i> Close
+      </div>
+    </div>
+    <div id="profileAvatar" style="width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:#fff;margin:0 auto 14px;"></div>
+    <div id="profileName" style="font-size:19px;font-weight:600;color:#fff;margin-bottom:4px;">—</div>
+    <div id="profileTeacher" style="font-size:13px;color:var(--purple-light);">—</div>
+  </div>
+  <div style="padding:24px 16px;">
+    <div style="background:#fff;border-radius:14px;border:0.5px solid var(--purple-light);overflow:hidden;">
+      <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--purple-light);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <i class="ti ti-user" style="font-size:18px;color:var(--purple-main);"></i>
+          <span style="font-size:14px;font-weight:500;color:var(--purple-dark);">Full name</span>
+        </div>
+        <span id="profileNameVal" style="font-size:14px;color:#888;">—</span>
+      </div>
+      <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <i class="ti ti-school" style="font-size:18px;color:var(--purple-main);"></i>
+          <span style="font-size:14px;font-weight:500;color:var(--purple-dark);">Teacher</span>
+        </div>
+        <span id="profileTeacherVal" style="font-size:14px;color:#888;">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   const SUPABASE_URL  = 'https://wfpphviaosfedotbivtb.supabase.co';
   const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ';
@@ -545,6 +577,8 @@
         firstName = existing.display_name.split(' ')[0];
         lastName  = existing.display_name.split(' ').slice(1).join(' ');
       }
+      profileData.name    = existing.display_name || (firstName + ' ' + lastName).trim();
+      profileData.teacher = existing.teacher_name || '—';
     } catch(e) {
       // Can't reach Supabase — redirect to profile to be safe
       window.location.replace('./profile.html');
@@ -568,11 +602,32 @@
     document.getElementById('app').classList.add('show');
   }
 
+
+  // Profile data stored globally for panel
+  let profileData = { name: '—', teacher: '—' };
+
+  function openProfile() {
+    const av = initials(profileData.name);
+    document.getElementById('profileAvatar').textContent = av;
+    document.getElementById('profileName').textContent = profileData.name;
+    document.getElementById('profileTeacher').textContent = profileData.teacher + "'s class";
+    document.getElementById('profileNameVal').textContent = profileData.name;
+    document.getElementById('profileTeacherVal').textContent = profileData.teacher;
+    document.getElementById('profilePanel').style.display = 'flex';
+  }
+
+  function closeProfile() {
+    document.getElementById('profilePanel').style.display = 'none';
+    document.querySelectorAll('.bnav-item').forEach(i => i.classList.remove('on'));
+    document.querySelector('[data-tab="home"]').classList.add('on');
+  }
+
   document.querySelectorAll('.bnav-item').forEach(item => {
     item.addEventListener('click', () => {
       const tab = item.dataset.tab;
       document.querySelectorAll('.bnav-item').forEach(i => i.classList.remove('on'));
       item.classList.add('on');
+      if (tab === 'profile') { openProfile(); return; }
       const NAV_ROUTES = { quiz: './quiz/index.html' };
       if (NAV_ROUTES[tab]) { window.location.href = NAV_ROUTES[tab]; return; }
       if (tab !== 'home') {
