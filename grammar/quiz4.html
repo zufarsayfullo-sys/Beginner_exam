@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Quiz 4 — Past Simple</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    :root {
+      --purple-dark:#26215C;--purple-main:#534AB7;--purple-mid:#7F77DD;
+      --purple-light:#CECBF6;--purple-pale:#EEEDFE;
+      --teal-dark:#085041;--teal-main:#0F6E56;--teal-pale:#E1F5EE;
+      --coral-dark:#712B13;--coral-main:#993C1D;--coral-pale:#FAECE7;
+      --bg:#F0EEF8;--radius:14px;--radius-sm:10px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);}
+    #quizScreen{height:100%;display:flex;flex-direction:column;}
+    .header{background:var(--purple-main);padding:10px 18px 16px;flex-shrink:0;}
+    .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .back-btn{display:flex;align-items:center;gap:5px;color:var(--purple-light);font-size:13px;cursor:pointer;text-decoration:none;}
+    .back-btn i{font-size:16px;}
+    .home-btn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;font-weight:500;padding:6px 13px;border-radius:20px;cursor:pointer;text-decoration:none;}
+    .home-btn i{font-size:14px;}
+    .progress-row{display:flex;align-items:center;gap:10px;}
+    .progress-track{flex:1;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;overflow:hidden;}
+    .progress-fill{height:100%;background:#fff;border-radius:3px;transition:width 0.4s ease;width:0%;}
+    .progress-label{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;min-width:40px;text-align:right;}
+    .scroll{flex:1;overflow-y:auto;padding:20px 16px 30px;-webkit-overflow-scrolling:touch;}
+    .scroll::-webkit-scrollbar{width:0;}
+    .qtopic{font-size:11px;font-weight:600;color:var(--purple-main);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;}
+    .qtext{font-size:17px;font-weight:600;color:var(--purple-dark);line-height:1.6;margin-bottom:6px;}
+    .qcontext{font-size:13px;color:#999;margin-bottom:20px;font-style:italic;line-height:1.5;}
+    .input-label{font-size:11px;font-weight:600;color:var(--purple-main);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:8px;}
+    .answer-input{width:100%;background:#fff;border:2px solid var(--purple-light);border-radius:var(--radius);padding:14px 16px;font-size:16px;font-family:'DM Sans',sans-serif;color:var(--purple-dark);outline:none;transition:border-color 0.2s;margin-bottom:8px;}
+    .answer-input:focus{border-color:var(--purple-main);}
+    .answer-input.correct{border-color:var(--teal-main);background:var(--teal-pale);color:var(--teal-dark);}
+    .answer-input.wrong{border-color:var(--coral-main);background:var(--coral-pale);color:var(--coral-dark);}
+    .hint-row{display:flex;align-items:center;gap:6px;margin-bottom:20px;}
+    .hint-chip{font-size:11px;color:#888;background:#F0EEF8;padding:4px 10px;border-radius:20px;}
+    .feedback-box{border-radius:var(--radius-sm);padding:12px 14px;display:none;align-items:flex-start;gap:9px;margin-bottom:18px;animation:fadeUp 0.25s ease both;}
+    .feedback-box.show{display:flex;}
+    .feedback-box.correct-fb{background:var(--teal-pale);}
+    .feedback-box.wrong-fb{background:var(--coral-pale);}
+    .fb-icon{font-size:17px;flex-shrink:0;}
+    .fb-text{font-size:13px;line-height:1.55;}
+    .feedback-box.correct-fb .fb-text{color:var(--teal-dark);}
+    .feedback-box.wrong-fb .fb-text{color:var(--coral-dark);}
+    .check-btn{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;transition:opacity 0.2s;}
+    .check-btn:disabled{opacity:0.35;cursor:not-allowed;}
+    .check-btn i{font-size:17px;}
+    .next-btn{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:none;align-items:center;justify-content:center;gap:8px;animation:fadeUp 0.25s ease both;}
+    .next-btn.show{display:flex;}
+    .next-btn i{font-size:17px;}
+    #resultScreen{display:none;flex-direction:column;height:100%;}
+    #resultScreen.show{display:flex;}
+    .result-header{background:var(--purple-main);padding:10px 18px 16px;flex-shrink:0;}
+    .result-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .result-scroll{flex:1;overflow-y:auto;padding:24px 18px 30px;display:flex;flex-direction:column;align-items:center;}
+    .result-emoji{font-size:54px;text-align:center;margin-bottom:10px;}
+    .result-title{font-size:21px;font-weight:700;color:var(--purple-dark);text-align:center;margin-bottom:4px;}
+    .result-sub{font-size:13px;color:#999;text-align:center;margin-bottom:24px;}
+    .score-circle{width:116px;height:116px;border-radius:50%;background:var(--purple-pale);border:4px solid var(--purple-main);display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:24px;}
+    .score-num{font-size:32px;font-weight:700;color:var(--purple-main);line-height:1;}
+    .score-lbl{font-size:11px;color:#888;margin-top:4px;}
+    .result-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;margin-bottom:24px;}
+    .rstat{background:#fff;border-radius:var(--radius-sm);padding:12px 10px;text-align:center;border:0.5px solid #E0DEFA;}
+    .rstat-val{font-size:20px;font-weight:700;}
+    .rstat-lbl{font-size:10px;color:#888;margin-top:3px;}
+    .rstat.c .rstat-val{color:var(--teal-main);}
+    .rstat.w .rstat-val{color:var(--coral-main);}
+    .rstat.a .rstat-val{color:var(--purple-main);}
+    .result-btns{display:flex;flex-direction:column;gap:9px;width:100%;}
+    .btn-retry{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .btn-back{width:100%;background:#fff;color:var(--purple-main);border:1.5px solid var(--purple-light);border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .btn-retry i,.btn-back i{font-size:17px;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  </style>
+</head>
+<body>
+
+<div id="quizScreen">
+  <div class="header">
+    <div class="header-top">
+      <a class="back-btn" href="./index.html"><i class="ti ti-arrow-left"></i> Grammar</a>
+      <a class="home-btn" href="../index.html"><i class="ti ti-home"></i> Main menu</a>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-label" id="progressLabel">0 / 10</span>
+    </div>
+  </div>
+  <div class="scroll" id="quizScroll">
+    <div class="qtopic">Past Simple</div>
+    <div class="qtext" id="qtext"></div>
+    <div class="qcontext" id="qcontext"></div>
+    <div class="input-label">Your answer</div>
+    <input class="answer-input" id="answerInput" type="text" placeholder="Type here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+    <div class="hint-row"><span class="hint-chip" id="hintChip">💡</span></div>
+    <div class="feedback-box" id="feedbackBox">
+      <span class="fb-icon" id="fbIcon"></span>
+      <div class="fb-text" id="fbText"></div>
+    </div>
+    <button class="check-btn" id="checkBtn" onclick="checkAnswer()" disabled><i class="ti ti-check"></i> Check answer</button>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next question <i class="ti ti-arrow-right"></i></button>
+  </div>
+</div>
+
+<div id="resultScreen">
+  <div class="result-header">
+    <div class="result-header-top">
+      <a class="back-btn" href="./index.html"><i class="ti ti-arrow-left"></i> Grammar</a>
+      <a class="home-btn" href="../index.html"><i class="ti ti-home"></i> Main menu</a>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+      <span class="progress-label">10 / 10</span>
+    </div>
+  </div>
+  <div class="result-scroll">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+    <div class="result-title">Quiz complete!</div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="score-circle">
+      <div class="score-num" id="scoreNum"></div>
+      <div class="score-lbl">Your score</div>
+    </div>
+    <div class="result-stats">
+      <div class="rstat c"><div class="rstat-val" id="resCorrect">0</div><div class="rstat-lbl">Correct</div></div>
+      <div class="rstat w"><div class="rstat-val" id="resWrong">0</div><div class="rstat-lbl">Wrong</div></div>
+      <div class="rstat a"><div class="rstat-val" id="resAttempts">0</div><div class="rstat-lbl">Attempts</div></div>
+    </div>
+    <div class="result-btns">
+      <button class="btn-retry" onclick="retryQuiz()"><i class="ti ti-refresh"></i> Try again</button>
+      <button class="btn-back" onclick="window.location.href='./index.html'"><i class="ti ti-list"></i> Back to Grammar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://wfpphviaosfedotbivtb.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ';
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const tg = window.Telegram?.WebApp;
+  tg?.ready(); tg?.expand();
+
+  // accepted: array of accepted answers (handles spelling variants)
+  const ALL_QUESTIONS = [
+    // was / were positive
+    { q:'Seven Up! _____ (be) a TV film about fourteen children in 1964.', accepted:['was'], hint:'💡 Singular subject → was / were', explanation:'Singular subject → past simple of <em>be</em>: <strong>was</strong>.', context:'Seven Up! — a famous 1964 documentary.' },
+    { q:'The children _____ (be) from different families — rich and poor.', accepted:['were'], hint:'💡 Plural subject → was / were', explanation:'Plural subject (the children) → <strong>were</strong>.', context:'Many children from different backgrounds.' },
+    { q:'Suzy _____ (be) at an expensive school when she was young.', accepted:['was'], hint:'💡 She / He / It → was', explanation:'Singular (Suzy) → <strong>was</strong>.', context:'Suzy\'s school life in the past.' },
+    { q:'Jan Wnęk _____ (be) born in Kaczówki, Poland.', accepted:['was'], hint:'💡 He / She / It → was', explanation:'Singular → <strong>was</strong> born.', context:'Jan Wnęk — a Polish inventor.' },
+    { q:'Harriet _____ (be) born in California in 1875.', accepted:['was'], hint:'💡 She → was', explanation:'Singular → <strong>was</strong> born.', context:'Harriet Chalmers Adams — explorer.' },
+    { q:'Martin Luther King _____ (be) a civil rights leader.', accepted:['was'], hint:'💡 He → was', explanation:'Singular → <strong>was</strong>.', context:'One of history\'s greatest leaders.' },
+    { q:'Marie Curie _____ (be) born in Poland.', accepted:['was'], hint:'💡 She → was', explanation:'Singular → <strong>was</strong>.', context:'Famous scientist.' },
+    { q:'Frida and Diego _____ (be) married artists.', accepted:['were'], hint:'💡 Two people → were', explanation:'Two people → plural → <strong>were</strong>.', context:'Frida Kahlo and Diego Rivera.' },
+
+    // wasn't / weren't
+    { q:'Seven Up! _____ (be, negative) a Hollywood film — it was a TV film.', accepted:["wasn't",'wasnt'], hint:'💡 Singular negative → wasn\'t', explanation:'Singular negative → <strong>wasn\'t</strong> (= was not).', context:'It was a TV documentary, not Hollywood.' },
+    { q:'The children _____ (be, negative) actors — they were real people.', accepted:["weren't",'werent'], hint:'💡 Plural negative → weren\'t', explanation:'Plural negative → <strong>weren\'t</strong> (= were not).', context:'Real children, not actors.' },
+    { q:'Suzy _____ (be, negative) happy as a child.', accepted:["wasn't",'wasnt'], hint:'💡 She → wasn\'t', explanation:'Singular negative → <strong>wasn\'t</strong>.', context:'Suzy had a difficult childhood.' },
+    { q:'Tolstoy _____ (be, negative) a good student at university.', accepted:["wasn't",'wasnt'], hint:'💡 He → wasn\'t', explanation:'Singular negative → <strong>wasn\'t</strong>.', context:'Tolstoy studied very little.' },
+    { q:'No, I _____ (be, negative) at that restaurant on Friday.', accepted:["wasn't",'wasnt'], hint:'💡 I → wasn\'t', explanation:'Singular negative → <strong>wasn\'t</strong>.', context:'Answering a question about the past.' },
+    { q:'Frank and Diane _____ (be, negative) at the party.', accepted:["weren't",'werent'], hint:'💡 Two people → weren\'t', explanation:'Plural negative → <strong>weren\'t</strong>.', context:'Two people who were absent.' },
+
+    // regular past simple +ed
+    { q:'Frida Kahlo _____ (start) painting when she was 18.', accepted:['started'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: start → <strong>started</strong> (+ed).', context:'Frida began her art career young.' },
+    { q:'She _____ (paint) 140 pictures in her life.', accepted:['painted'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: paint → <strong>painted</strong> (+ed).', context:'Frida Kahlo\'s artistic legacy.' },
+    { q:'Martin Luther King _____ (walk) to the White House in 1963.', accepted:['walked'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: walk → <strong>walked</strong> (+ed).', context:'The famous Washington march.' },
+    { q:'He _____ (talk) to 250,000 people about his dream.', accepted:['talked'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: talk → <strong>talked</strong> (+ed).', context:'MLK\'s famous speech.' },
+    { q:'Harriet _____ (visit) every country in South America.', accepted:['visited'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: visit → <strong>visited</strong> (+ed).', context:'Harriet\'s South American travels 1904–1907.' },
+    { q:'Tolstoy _____ (open) thirteen schools for poor children.', accepted:['opened'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: open → <strong>opened</strong> (+ed).', context:'Tolstoy\'s work for education.' },
+    { q:'My grandmother _____ (work) in that hospital for thirty years.', accepted:['worked'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: work → <strong>worked</strong> (+ed).', context:'A long career in the past.' },
+    { q:'A famous artist _____ (paint) this picture in 1890.', accepted:['painted'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: paint → <strong>painted</strong> (+ed).', context:'A completed action in the past.' },
+    { q:'I _____ (watch) that film on Saturday.', accepted:['watched'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: watch → <strong>watched</strong> (+ed).', context:'A weekend activity.' },
+    { q:'They _____ (play) tennis at 4 o\'clock yesterday.', accepted:['played'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: play → <strong>played</strong> (+ed).', context:'A specific past activity.' },
+    { q:'Melinda _____ (work) for Microsoft as a product developer.', accepted:['worked'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: work → <strong>worked</strong> (+ed).', context:'Melinda Gates\' career.' },
+    { q:'They _____ (travel) around the world together.', accepted:['travelled','traveled'], hint:'💡 Add -ed (double l in British English)', explanation:'Past simple: travel → <strong>travelled</strong> (+ed, double l).', context:'Bill and Melinda Gates.' },
+
+    // verbs ending in -e → add d
+    { q:'Harriet _____ (use) a camera to take photos on her travels.', accepted:['used'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: use → <strong>used</strong> (ends in -e, add d).', context:'Harriet documented her travels.' },
+    { q:'Jan _____ (use) his glider to make short flights.', accepted:['used'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: use → <strong>used</strong> (add d).', context:'Jan\'s flights between 1866 and 1869.' },
+    { q:'She _____ (live) in Paris, but loved her home country.', accepted:['lived'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: live → <strong>lived</strong> (add d).', context:'Marie Curie in France.' },
+    { q:'Harriet _____ (die) in Nice in 1937, at the age of sixty-one.', accepted:['died'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: die → <strong>died</strong> (add d).', context:'End of Harriet\'s life.' },
+    { q:'Jan _____ (die) in a flying accident in 1869.', accepted:['died'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: die → <strong>died</strong> (add d).', context:'Jan Wnęk\'s tragic accident.' },
+
+    // consonant + y → ied
+    { q:'Jan Wnęk _____ (study) birds before building his glider.', accepted:['studied'], hint:'💡 Consonant + y → change y to ied', explanation:'Past simple: study → <strong>studied</strong> (y → ied).', context:'Jan researched birds carefully.' },
+    { q:'Marie Curie _____ (study) at the Sorbonne in France.', accepted:['studied'], hint:'💡 Consonant + y → change y to ied', explanation:'Past simple: study → <strong>studied</strong> (y → ied).', context:'Marie Curie\'s university years.' },
+    { q:'Harriet _____ (marry) Franklin Pierce Adams in 1899.', accepted:['married'], hint:'💡 Consonant + y → change y to ied', explanation:'Past simple: marry → <strong>married</strong> (y → ied).', context:'Harriet\'s marriage in 1899.' },
+    { q:'Martin Luther King _____ (try) to get equal rights for everyone.', accepted:['tried'], hint:'💡 Consonant + y → change y to ied', explanation:'Past simple: try → <strong>tried</strong> (y → ied).', context:'MLK\'s life mission.' },
+
+    // didn't + base verb
+    { q:'Jan Wnęk _____ (go, negative) to school — he had no education.', accepted:["didn't go","didnt go"], hint:'💡 Negative: didn\'t + base verb', explanation:'Past simple negative: <strong>didn\'t go</strong> (base verb, no -ed).', context:'Jan was from a poor family.' },
+    { q:'Tolstoy _____ (study, negative) much at university.', accepted:["didn't study","didnt study"], hint:'💡 Negative: didn\'t + base verb', explanation:'Past simple negative: <strong>didn\'t study</strong>.', context:'Tolstoy was a bad student.' },
+    { q:'The film _____ (finish, negative) at 9.30 — it finished at 10.00.', accepted:["didn't finish","didnt finish"], hint:'💡 Negative: didn\'t + base verb', explanation:'Past simple negative: <strong>didn\'t finish</strong>.', context:'The film ended later.' },
+    { q:'She _____ (live, negative) in France — she always loved Poland.', accepted:["didn't live","didnt live"], hint:'💡 Negative: didn\'t + base verb', explanation:'Past simple negative: <strong>didn\'t live</strong>.', context:'Marie Curie\'s heart was in Poland.' },
+
+    // was born / were born
+    { q:'Ingrid Bergman _____ (be born) in Sweden in 1915.', accepted:['was born'], hint:'💡 She → was born', explanation:'<strong>Was born</strong> — singular past passive.', context:'Famous Swedish actress.' },
+    { q:'Marie Curie _____ (be born) in Poland in 1867.', accepted:['was born'], hint:'💡 She → was born', explanation:'<strong>Was born</strong> — singular past.', context:'Famous scientist from Poland.' },
+    { q:'Neil and Suzy _____ (be born) in England.', accepted:['were born'], hint:'💡 Two people → were born', explanation:'<strong>Were born</strong> — plural past.', context:'Seven Up! children.' },
+  ];
+
+  let questions=[], current=0, correctCount=0, answered=false, attemptNumber=1, userId=null;
+
+  async function getTelegramId(){
+    if(tg?.initDataUnsafe?.user) return String(tg.initDataUnsafe.user.id);
+    return localStorage.getItem('dev_tg_id')||'dev_user';
+  }
+
+  async function loadUser(){
+    try{
+      const tid=await getTelegramId();
+      const{data}=await db.from('exam_users').select('id').eq('telegram_id',tid).single();
+      userId=data?.id||null;
+      if(userId){
+        const{data:att}=await db.from('exam_quiz_attempts').select('id').eq('user_id',userId).eq('skill','grammar').eq('quiz_id',4);
+        attemptNumber=(att?.length||0)+1;
+      }
+    }catch(e){console.error(e);}
+  }
+
+  async function saveAttempt(score){
+    if(!userId)return;
+    try{
+      await db.from('exam_quiz_attempts').insert({user_id:userId,skill:'grammar',quiz_id:4,score});
+      const{data:prog}=await db.from('exam_progress').select('id,tasks_done').eq('user_id',userId).eq('skill','grammar').single();
+      if(prog){
+        await db.from('exam_progress').update({tasks_done:Math.max(prog.tasks_done,4),updated_at:new Date().toISOString()}).eq('id',prog.id);
+      }else{
+        await db.from('exam_progress').insert({user_id:userId,skill:'grammar',tasks_done:1,tasks_total:8});
+      }
+    }catch(e){console.error(e);}
+  }
+
+  function shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  }
+
+  function normalize(str){ return str.trim().toLowerCase().replace(/['']/g,"'"); }
+
+  function isCorrect(input, accepted){
+    const norm = normalize(input);
+    return accepted.some(a => normalize(a) === norm);
+  }
+
+  function startQuiz(){
+    questions=shuffle(ALL_QUESTIONS).slice(0,10);
+    current=0; correctCount=0; answered=false;
+    document.getElementById('quizScreen').style.display='flex';
+    document.getElementById('resultScreen').classList.remove('show');
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    answered=false;
+    const q=questions[current];
+    const pct=(current/10)*100;
+    document.getElementById('progressFill').style.width=pct+'%';
+    document.getElementById('progressLabel').textContent=current+' / 10';
+    document.getElementById('qtext').textContent=q.q;
+    document.getElementById('qcontext').textContent=q.context;
+    document.getElementById('hintChip').textContent=q.hint;
+
+    const input=document.getElementById('answerInput');
+    input.value='';
+    input.className='answer-input';
+    input.readOnly=false;
+    input.focus();
+
+    document.getElementById('feedbackBox').className='feedback-box';
+    document.getElementById('checkBtn').style.display='flex';
+    document.getElementById('checkBtn').disabled=true;
+    document.getElementById('nextBtn').classList.remove('show');
+    document.getElementById('quizScroll').scrollTo({top:0,behavior:'smooth'});
+  }
+
+  document.getElementById('answerInput').addEventListener('input', function(){
+    document.getElementById('checkBtn').disabled = this.value.trim().length === 0;
+  });
+
+  document.getElementById('answerInput').addEventListener('keydown', function(e){
+    if(e.key==='Enter' && !document.getElementById('checkBtn').disabled && !answered){
+      checkAnswer();
+    }
+  });
+
+  function checkAnswer(){
+    if(answered)return;
+    answered=true;
+
+    const input=document.getElementById('answerInput');
+    const q=questions[current];
+    const correct=isCorrect(input.value, q.accepted);
+    if(correct) correctCount++;
+
+    input.className='answer-input '+(correct?'correct':'wrong');
+    input.readOnly=true;
+
+    const fb=document.getElementById('feedbackBox');
+    fb.className='feedback-box show '+(correct?'correct-fb':'wrong-fb');
+    document.getElementById('fbIcon').textContent=correct?'✅':'❌';
+    document.getElementById('fbText').innerHTML=correct
+      ? q.explanation
+      : `The correct answer is <strong>${q.accepted[0]}</strong>. ${q.explanation}`;
+
+    document.getElementById('checkBtn').style.display='none';
+    const nextBtn=document.getElementById('nextBtn');
+    nextBtn.classList.add('show');
+    nextBtn.innerHTML=current<9?'Next question <i class="ti ti-arrow-right"></i>':'See results <i class="ti ti-trophy"></i>';
+    setTimeout(()=>{document.getElementById('quizScroll').scrollTo({top:999,behavior:'smooth'});},150);
+  }
+
+  function nextQuestion(){
+    current++;
+    if(current>=10) showResult();
+    else renderQuestion();
+  }
+
+  async function showResult(){
+    const score=Math.round((correctCount/10)*100);
+    await saveAttempt(score);
+    document.getElementById('resultEmoji').textContent=score>=80?'🎉':score>=60?'👍':'💪';
+    document.getElementById('resultSub').textContent=`Past Simple · Attempt ${attemptNumber}`;
+    document.getElementById('scoreNum').textContent=score+'%';
+    document.getElementById('resCorrect').textContent=correctCount;
+    document.getElementById('resWrong').textContent=10-correctCount;
+    document.getElementById('resAttempts').textContent=attemptNumber;
+    document.getElementById('quizScreen').style.display='none';
+    document.getElementById('resultScreen').classList.add('show');
+  }
+
+  function retryQuiz(){ attemptNumber++; startQuiz(); }
+
+  async function init(){ await loadUser(); startQuiz(); }
+  init();
+</script>
+</body>
+</html>
