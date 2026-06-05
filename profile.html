@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Profile — ExamPrep</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    :root{--purple-dark:#26215C;--purple-main:#534AB7;--purple-light:#CECBF6;--purple-pale:#EEEDFE;--teal-main:#0F6E56;--teal-pale:#E1F5EE;--coral-pale:#FAECE7;--coral-main:#993C1D;--bg:#F0EEF8;--radius:14px;--radius-sm:10px;}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);}
+
+    /* SPLASH */
+    #splash{position:fixed;inset:0;background:var(--purple-main);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:100;transition:opacity 0.4s ease;}
+    #splash.hide{opacity:0;pointer-events:none;}
+    .splash-icon{font-size:44px;color:#fff;}
+    .splash-name{font-size:20px;font-weight:600;color:#fff;}
+    .splash-spinner{width:26px;height:26px;border:2.5px solid var(--purple-light);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;margin-top:6px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* PROFILE FORM */
+    #profileScreen{height:100%;display:flex;flex-direction:column;opacity:0;transition:opacity 0.3s ease;}
+    #profileScreen.show{opacity:1;}
+    .prof-header{background:var(--purple-main);padding:20px 20px 32px;text-align:center;flex-shrink:0;}
+    .prof-icon{width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:30px;}
+    .prof-title{font-size:19px;font-weight:600;color:#fff;margin-bottom:5px;}
+    .prof-sub{font-size:13px;color:var(--purple-light);}
+    .scroll{flex:1;overflow-y:auto;padding:24px 16px 40px;-webkit-overflow-scrolling:touch;}
+    .scroll::-webkit-scrollbar{width:0;}
+    .field-label{font-size:11px;font-weight:600;color:var(--purple-main);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;}
+    .field-input{width:100%;background:#fff;border:2px solid var(--purple-light);border-radius:var(--radius);padding:14px 16px;font-size:15px;font-family:'DM Sans',sans-serif;color:var(--purple-dark);outline:none;transition:border-color 0.2s;margin-bottom:20px;}
+    .field-input:focus{border-color:var(--purple-main);}
+    .teacher-label{font-size:11px;font-weight:600;color:var(--purple-main);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;}
+    .teacher-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+    .tcard{background:#fff;border:2px solid var(--purple-light);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.15s;user-select:none;}
+    .tcard.selected{border-color:var(--purple-main);background:var(--purple-pale);}
+    .tcard:active{transform:scale(0.98);}
+    .tav{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;}
+    .tav-z{background:var(--purple-pale);color:var(--purple-main);}
+    .tav-f{background:var(--teal-pale);color:var(--teal-main);}
+    .tname{font-size:15px;font-weight:600;color:var(--purple-dark);}
+    .trole{font-size:12px;color:#888;margin-top:2px;}
+    .tcheck{width:22px;height:22px;border-radius:50%;border:2px solid var(--purple-light);margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+    .tcard.selected .tcheck{background:var(--purple-main);border-color:var(--purple-main);color:#fff;}
+    .submit-btn{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s;}
+    .submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
+    .submit-btn i{font-size:17px;}
+    .error-msg{background:var(--coral-pale);color:var(--coral-main);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;}
+    .error-msg.show{display:block;}
+
+    /* WAITING SCREEN */
+    #waitScreen{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 20px 30px;overflow-y:auto;display:none;}
+    #waitScreen.show{display:flex;}
+    .wait-icon{font-size:56px;margin-bottom:16px;}
+    .wait-title{font-size:20px;font-weight:700;color:var(--purple-dark);margin-bottom:8px;text-align:center;}
+    .wait-sub{font-size:13px;color:#888;line-height:1.65;margin-bottom:24px;text-align:center;}
+    .wait-card{background:#fff;border-radius:var(--radius);padding:16px;width:100%;border:0.5px solid var(--purple-light);margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+    .wait-av{width:42px;height:42px;border-radius:50%;background:var(--purple-pale);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--purple-main);flex-shrink:0;}
+    .wait-name{font-size:15px;font-weight:600;color:var(--purple-dark);}
+    .wait-teacher{font-size:12px;color:#888;margin-top:2px;}
+    .wait-badge{display:inline-flex;align-items:center;gap:6px;background:#FAEEDA;color:#633806;font-size:13px;font-weight:600;padding:7px 16px;border-radius:20px;margin-bottom:28px;}
+    .wait-badge i{font-size:15px;}
+    .locked-label{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;width:100%;}
+    .locked-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-bottom:24px;}
+    .locked-card{background:#fff;border-radius:var(--radius-sm);padding:14px 10px;opacity:0.45;text-align:center;border:0.5px solid #e0e0e0;}
+    .locked-card i{font-size:22px;color:#aaa;display:block;margin-bottom:5px;}
+    .locked-card span{font-size:12px;color:#aaa;}
+    .refresh-btn{width:100%;background:#fff;border:1.5px solid var(--purple-light);border-radius:var(--radius);padding:14px;font-size:14px;font-weight:600;color:var(--purple-main);display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;margin-bottom:12px;}
+    .refresh-btn i{font-size:16px;}
+    .approved-btn{width:100%;background:var(--teal-main);color:#fff;border:none;border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;display:none;}
+    .approved-btn.show{display:flex;}
+    .approved-btn i{font-size:17px;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  </style>
+</head>
+<body>
+
+<div id="splash">
+  <i class="ti ti-school splash-icon"></i>
+  <div class="splash-name">ExamPrep</div>
+  <div class="splash-spinner"></div>
+</div>
+
+<!-- PROFILE FORM -->
+<div id="profileScreen">
+  <div class="prof-header">
+    <div class="prof-icon">👋</div>
+    <div class="prof-title">Welcome to ExamPrep</div>
+    <div class="prof-sub">Set up your profile to get started</div>
+  </div>
+  <div class="scroll">
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="field-label">Your full name</div>
+    <input class="field-input" id="nameInput" type="text" placeholder="e.g. Aliya Sobirov" autocomplete="off" autocorrect="off" />
+
+    <div class="teacher-label">Choose your teacher</div>
+    <div class="teacher-cards">
+      <div class="tcard" id="teacher-zufar" onclick="selectTeacher('mr_zufar','Mr Zufar')">
+        <div class="tav tav-z">MZ</div>
+        <div>
+          <div class="tname">Mr Zufar</div>
+          <div class="trole">English teacher</div>
+        </div>
+        <div class="tcheck" id="check-zufar"></div>
+      </div>
+      <div class="tcard" id="teacher-farrux" onclick="selectTeacher('mr_farrux','Mr Farrux')">
+        <div class="tav tav-f">MF</div>
+        <div>
+          <div class="tname">Mr Farrux</div>
+          <div class="trole">English teacher</div>
+        </div>
+        <div class="tcheck" id="check-farrux"></div>
+      </div>
+    </div>
+    <button class="submit-btn" id="submitBtn" onclick="submitProfile()" disabled>
+      <i class="ti ti-send"></i> Submit profile
+    </button>
+  </div>
+</div>
+
+<!-- WAITING SCREEN -->
+<div id="waitScreen">
+  <div class="wait-icon">⏳</div>
+  <div class="wait-title">Waiting for approval</div>
+  <div class="wait-sub">Your teacher needs to approve your account before you can start using ExamPrep. This usually takes a short time.</div>
+  <div class="wait-card">
+    <div class="wait-av" id="waitAv">?</div>
+    <div>
+      <div class="wait-name" id="waitName">—</div>
+      <div class="wait-teacher" id="waitTeacher">—</div>
+    </div>
+  </div>
+  <div class="wait-badge"><i class="ti ti-clock"></i> Pending approval</div>
+  <div class="locked-label">Features — locked until approved</div>
+  <div class="locked-grid">
+    <div class="locked-card"><i class="ti ti-pencil-check"></i><span>Grammar</span></div>
+    <div class="locked-card"><i class="ti ti-cards"></i><span>Vocabulary</span></div>
+    <div class="locked-card"><i class="ti ti-writing"></i><span>Writing</span></div>
+    <div class="locked-card"><i class="ti ti-microphone"></i><span>Speaking</span></div>
+    <div class="locked-card"><i class="ti ti-book-2"></i><span>Reading</span></div>
+    <div class="locked-card"><i class="ti ti-headphones"></i><span>Listening</span></div>
+  </div>
+  <button class="refresh-btn" onclick="checkApproval()"><i class="ti ti-refresh"></i> Check approval status</button>
+  <button class="approved-btn" id="approvedBtn" onclick="goHome()"><i class="ti ti-check"></i> You're approved — Go to app</button>
+</div>
+
+<script>
+  const SUPABASE_URL='https://wfpphviaosfedotbivtb.supabase.co';
+  const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ';
+  const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const tg=window.Telegram?.WebApp;
+  tg?.ready();tg?.expand();
+
+  let selectedTeacherId=null;
+  let selectedTeacherName=null;
+  let currentUserId=null;
+
+  function initials(name){
+    if(!name)return '?';
+    return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  }
+
+  async function getTelegramUser(){
+    if(tg?.initDataUnsafe?.user){
+      const u=tg.initDataUnsafe.user;
+      return {id:String(u.id),firstName:u.first_name||'',lastName:u.last_name||'',username:u.username||''};
+    }
+    return {id:'dev_'+Math.random().toString(36).slice(2,8),firstName:'Dev',lastName:'User',username:'devuser'};
+  }
+
+  function selectTeacher(id,name){
+    selectedTeacherId=id;
+    selectedTeacherName=name;
+    document.querySelectorAll('.tcard').forEach(c=>c.classList.remove('selected'));
+    document.querySelectorAll('.tcheck').forEach(c=>c.innerHTML='');
+    document.getElementById('teacher-'+id.replace('mr_','')).classList.add('selected');
+    document.getElementById('check-'+id.replace('mr_','')).innerHTML='<i class="ti ti-check" style="font-size:11px;"></i>';
+    updateSubmitBtn();
+  }
+
+  function updateSubmitBtn(){
+    const name=document.getElementById('nameInput').value.trim();
+    document.getElementById('submitBtn').disabled=!(name.length>1&&selectedTeacherId);
+  }
+
+  document.getElementById('nameInput').addEventListener('input',updateSubmitBtn);
+
+  async function submitProfile(){
+    const name=document.getElementById('nameInput').value.trim();
+    if(!name||!selectedTeacherId)return;
+    document.getElementById('submitBtn').disabled=true;
+    document.getElementById('submitBtn').innerHTML='<i class="ti ti-loader-2" style="font-size:17px;animation:spin 0.8s linear infinite;"></i> Submitting...';
+
+    try{
+      const tgUser=await getTelegramUser();
+      const nameParts=name.split(' ');
+      const firstName=nameParts[0];
+      const lastName=nameParts.slice(1).join(' ')||'';
+
+      // upsert user with display name and teacher
+      const{data,error}=await db.from('exam_users')
+        .upsert({
+          telegram_id:tgUser.id,
+          display_name:name,
+          first_name:firstName,
+          last_name:lastName,
+          username:tgUser.username,
+          teacher_id:selectedTeacherId,
+          teacher_name:selectedTeacherName,
+          approved:false
+        },{onConflict:'telegram_id'})
+        .select().single();
+
+      if(error)throw error;
+      currentUserId=data.id;
+      showWaitScreen(name,selectedTeacherName);
+    }catch(e){
+      console.error(e);
+      const errEl=document.getElementById('errorMsg');
+      errEl.textContent='Something went wrong. Please try again.';
+      errEl.classList.add('show');
+      document.getElementById('submitBtn').disabled=false;
+      document.getElementById('submitBtn').innerHTML='<i class="ti ti-send"></i> Submit profile';
+    }
+  }
+
+  function showWaitScreen(name,teacher){
+    document.getElementById('waitAv').textContent=initials(name);
+    document.getElementById('waitName').textContent=name;
+    document.getElementById('waitTeacher').textContent=teacher+"'s class";
+    document.getElementById('profileScreen').style.display='none';
+    document.getElementById('waitScreen').classList.add('show');
+  }
+
+  async function checkApproval(){
+    const btn=document.querySelector('.refresh-btn');
+    btn.innerHTML='<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;font-size:16px;"></i> Checking...';
+    btn.disabled=true;
+    try{
+      const tgUser=await getTelegramUser();
+      const{data}=await db.from('exam_users').select('approved').eq('telegram_id',tgUser.id).single();
+      if(data?.approved){
+        document.getElementById('approvedBtn').classList.add('show');
+        btn.innerHTML='<i class="ti ti-check"></i> You are approved!';
+        btn.style.color='var(--teal-main)';
+      }else{
+        btn.innerHTML='<i class="ti ti-refresh"></i> Not yet — check again later';
+        setTimeout(()=>{btn.innerHTML='<i class="ti ti-refresh"></i> Check approval status';btn.disabled=false;},2000);
+      }
+    }catch(e){
+      btn.innerHTML='<i class="ti ti-refresh"></i> Check approval status';
+      btn.disabled=false;
+    }
+  }
+
+  function goHome(){window.location.href='./index.html';}
+
+  async function init(){
+    try{
+      const tgUser=await getTelegramUser();
+      const{data}=await db.from('exam_users').select('id,display_name,teacher_name,approved').eq('telegram_id',tgUser.id).single();
+
+      if(data){
+        currentUserId=data.id;
+        if(data.approved){
+          // already approved — go straight to home
+          window.location.replace('./index.html');
+          return;
+        }else{
+          // registered but not yet approved
+          showWaitScreen(data.display_name||tgUser.firstName,data.teacher_name||'your teacher');
+        }
+      }else{
+        // new user — show profile form
+        // pre-fill first name from Telegram
+        if(tgUser.firstName&&tgUser.firstName!=='Dev'){
+          const fullName=(tgUser.firstName+(tgUser.lastName?' '+tgUser.lastName:'')).trim();
+          document.getElementById('nameInput').value=fullName;
+          updateSubmitBtn();
+        }
+        document.getElementById('profileScreen').classList.add('show');
+      }
+    }catch(e){
+      // no record found — show profile form
+      document.getElementById('profileScreen').classList.add('show');
+    }
+    document.getElementById('splash').classList.add('hide');
+  }
+
+  init();
+</script>
+</body>
+</html>
