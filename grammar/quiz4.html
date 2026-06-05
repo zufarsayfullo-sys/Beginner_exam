@@ -39,8 +39,8 @@
     .answer-input:focus{border-color:var(--purple-main);}
     .answer-input.correct{border-color:var(--teal-main);background:var(--teal-pale);color:var(--teal-dark);}
     .answer-input.wrong{border-color:var(--coral-main);background:var(--coral-pale);color:var(--coral-dark);}
-    .hint-row{display:flex;align-items:center;gap:6px;margin-bottom:20px;}
-    .hint-chip{font-size:11px;color:#888;background:#F0EEF8;padding:4px 10px;border-radius:20px;}
+
+
     .feedback-box{border-radius:var(--radius-sm);padding:12px 14px;display:none;align-items:flex-start;gap:9px;margin-bottom:18px;animation:fadeUp 0.25s ease both;}
     .feedback-box.show{display:flex;}
     .feedback-box.correct-fb{background:var(--teal-pale);}
@@ -99,7 +99,7 @@
     <div class="qcontext" id="qcontext"></div>
     <div class="input-label">Your answer</div>
     <input class="answer-input" id="answerInput" type="text" placeholder="Type here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-    <div class="hint-row"><span class="hint-chip" id="hintChip">💡</span></div>
+
     <div class="feedback-box" id="feedbackBox">
       <span class="fb-icon" id="fbIcon"></span>
       <div class="fb-text" id="fbText"></div>
@@ -150,60 +150,60 @@
   // accepted: array of accepted answers (handles spelling variants)
   const ALL_QUESTIONS = [
     // was / were positive
-    { q:'Seven Up! _____ (be) a TV film about fourteen children in 1964.', accepted:['was'], hint:'💡 Singular subject → was / were', explanation:'Singular subject → past simple of <em>be</em>: <strong>was</strong>.', context:'Seven Up! — a famous 1964 documentary.' },
-    { q:'The children _____ (be) from different families — rich and poor.', accepted:['were'], hint:'💡 Plural subject → was / were', explanation:'Plural subject (the children) → <strong>were</strong>.', context:'Many children from different backgrounds.' },
-    { q:'Suzy _____ (be) at an expensive school when she was young.', accepted:['was'], hint:'💡 She / He / It → was', explanation:'Singular (Suzy) → <strong>was</strong>.', context:'Suzy\'s school life in the past.' },
-    { q:'Jan Wnęk _____ (be) born in Kaczówki, Poland.', accepted:['was'], hint:'💡 He / She / It → was', explanation:'Singular → <strong>was</strong> born.', context:'Jan Wnęk — a Polish inventor.' },
-    { q:'Harriet _____ (be) born in California in 1875.', accepted:['was'], hint:'💡 She → was', explanation:'Singular → <strong>was</strong> born.', context:'Harriet Chalmers Adams — explorer.' },
-    { q:'Martin Luther King _____ (be) a civil rights leader.', accepted:['was'], hint:'💡 He → was', explanation:'Singular → <strong>was</strong>.', context:'One of history\'s greatest leaders.' },
-    { q:'Marie Curie _____ (be) born in Poland.', accepted:['was'], hint:'💡 She → was', explanation:'Singular → <strong>was</strong>.', context:'Famous scientist.' },
-    { q:'Frida and Diego _____ (be) married artists.', accepted:['were'], hint:'💡 Two people → were', explanation:'Two people → plural → <strong>were</strong>.', context:'Frida Kahlo and Diego Rivera.' },
+
+
+
+
+
+
+
+
 
     // wasn't / weren't
-    { q:'Seven Up! _____ (be, negative) a Hollywood film — it was a TV film.', accepted:["wasn't",'wasnt'], hint:'💡 Singular negative → wasn\'t', explanation:'Singular negative → <strong>wasn\'t</strong> (= was not).', context:'It was a TV documentary, not Hollywood.' },
-    { q:'The children _____ (be, negative) actors — they were real people.', accepted:["weren't",'werent'], hint:'💡 Plural negative → weren\'t', explanation:'Plural negative → <strong>weren\'t</strong> (= were not).', context:'Real children, not actors.' },
-    { q:'Suzy _____ (be, negative) happy as a child.', accepted:["wasn't",'wasnt'], hint:'💡 She → wasn\'t', explanation:'Singular negative → <strong>wasn\'t</strong>.', context:'Suzy had a difficult childhood.' },
-    { q:'Tolstoy _____ (be, negative) a good student at university.', accepted:["wasn't",'wasnt'], hint:'💡 He → wasn\'t', explanation:'Singular negative → <strong>wasn\'t</strong>.', context:'Tolstoy studied very little.' },
-    { q:'No, I _____ (be, negative) at that restaurant on Friday.', accepted:["wasn't",'wasnt'], hint:'💡 I → wasn\'t', explanation:'Singular negative → <strong>wasn\'t</strong>.', context:'Answering a question about the past.' },
-    { q:'Frank and Diane _____ (be, negative) at the party.', accepted:["weren't",'werent'], hint:'💡 Two people → weren\'t', explanation:'Plural negative → <strong>weren\'t</strong>.', context:'Two people who were absent.' },
+
+
+
+
+
+
 
     // regular past simple +ed
-    { q:'Frida Kahlo _____ (start) painting when she was 18.', accepted:['started'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: start → <strong>started</strong> (+ed).', context:'Frida began her art career young.' },
-    { q:'She _____ (paint) 140 pictures in her life.', accepted:['painted'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: paint → <strong>painted</strong> (+ed).', context:'Frida Kahlo\'s artistic legacy.' },
-    { q:'Martin Luther King _____ (walk) to the White House in 1963.', accepted:['walked'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: walk → <strong>walked</strong> (+ed).', context:'The famous Washington march.' },
-    { q:'He _____ (talk) to 250,000 people about his dream.', accepted:['talked'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: talk → <strong>talked</strong> (+ed).', context:'MLK\'s famous speech.' },
-    { q:'Harriet _____ (visit) every country in South America.', accepted:['visited'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: visit → <strong>visited</strong> (+ed).', context:'Harriet\'s South American travels 1904–1907.' },
-    { q:'Tolstoy _____ (open) thirteen schools for poor children.', accepted:['opened'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: open → <strong>opened</strong> (+ed).', context:'Tolstoy\'s work for education.' },
-    { q:'My grandmother _____ (work) in that hospital for thirty years.', accepted:['worked'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: work → <strong>worked</strong> (+ed).', context:'A long career in the past.' },
-    { q:'A famous artist _____ (paint) this picture in 1890.', accepted:['painted'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: paint → <strong>painted</strong> (+ed).', context:'A completed action in the past.' },
-    { q:'I _____ (watch) that film on Saturday.', accepted:['watched'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: watch → <strong>watched</strong> (+ed).', context:'A weekend activity.' },
-    { q:'They _____ (play) tennis at 4 o\'clock yesterday.', accepted:['played'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: play → <strong>played</strong> (+ed).', context:'A specific past activity.' },
-    { q:'Melinda _____ (work) for Microsoft as a product developer.', accepted:['worked'], hint:'💡 Add -ed to most verbs', explanation:'Past simple: work → <strong>worked</strong> (+ed).', context:'Melinda Gates\' career.' },
-    { q:'They _____ (travel) around the world together.', accepted:['travelled','traveled'], hint:'💡 Add -ed (double l in British English)', explanation:'Past simple: travel → <strong>travelled</strong> (+ed, double l).', context:'Bill and Melinda Gates.' },
+
+
+
+
+
+
+
+
+
+
+
+
 
     // verbs ending in -e → add d
-    { q:'Harriet _____ (use) a camera to take photos on her travels.', accepted:['used'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: use → <strong>used</strong> (ends in -e, add d).', context:'Harriet documented her travels.' },
-    { q:'Jan _____ (use) his glider to make short flights.', accepted:['used'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: use → <strong>used</strong> (add d).', context:'Jan\'s flights between 1866 and 1869.' },
-    { q:'She _____ (live) in Paris, but loved her home country.', accepted:['lived'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: live → <strong>lived</strong> (add d).', context:'Marie Curie in France.' },
-    { q:'Harriet _____ (die) in Nice in 1937, at the age of sixty-one.', accepted:['died'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: die → <strong>died</strong> (add d).', context:'End of Harriet\'s life.' },
-    { q:'Jan _____ (die) in a flying accident in 1869.', accepted:['died'], hint:'💡 Verb ends in -e → just add -d', explanation:'Past simple: die → <strong>died</strong> (add d).', context:'Jan Wnęk\'s tragic accident.' },
+
+
+
+
+
 
     // consonant + y → ied
-    { q:'Jan Wnęk _____ (study) birds before building his glider.', accepted:['studied'], hint:'💡 Consonant + y → change y to ied', explanation:'Past simple: study → <strong>studied</strong> (y → ied).', context:'Jan researched birds carefully.' },
-    { q:'Marie Curie _____ (study) at the Sorbonne in France.', accepted:['studied'], hint:'💡 Consonant + y → change y to ied', explanation:'Past simple: study → <strong>studied</strong> (y → ied).', context:'Marie Curie\'s university years.' },
-    { q:'Harriet _____ (marry) Franklin Pierce Adams in 1899.', accepted:['married'], hint:'💡 Consonant + y → change y to ied', explanation:'Past simple: marry → <strong>married</strong> (y → ied).', context:'Harriet\'s marriage in 1899.' },
-    { q:'Martin Luther King _____ (try) to get equal rights for everyone.', accepted:['tried'], hint:'💡 Consonant + y → change y to ied', explanation:'Past simple: try → <strong>tried</strong> (y → ied).', context:'MLK\'s life mission.' },
+
+
+
+
 
     // didn't + base verb
-    { q:'Jan Wnęk _____ (go, negative) to school — he had no education.', accepted:["didn't go","didnt go"], hint:'💡 Negative: didn\'t + base verb', explanation:'Past simple negative: <strong>didn\'t go</strong> (base verb, no -ed).', context:'Jan was from a poor family.' },
-    { q:'Tolstoy _____ (study, negative) much at university.', accepted:["didn't study","didnt study"], hint:'💡 Negative: didn\'t + base verb', explanation:'Past simple negative: <strong>didn\'t study</strong>.', context:'Tolstoy was a bad student.' },
-    { q:'The film _____ (finish, negative) at 9.30 — it finished at 10.00.', accepted:["didn't finish","didnt finish"], hint:'💡 Negative: didn\'t + base verb', explanation:'Past simple negative: <strong>didn\'t finish</strong>.', context:'The film ended later.' },
-    { q:'She _____ (live, negative) in France — she always loved Poland.', accepted:["didn't live","didnt live"], hint:'💡 Negative: didn\'t + base verb', explanation:'Past simple negative: <strong>didn\'t live</strong>.', context:'Marie Curie\'s heart was in Poland.' },
+
+
+
+
 
     // was born / were born
-    { q:'Ingrid Bergman _____ (be born) in Sweden in 1915.', accepted:['was born'], hint:'💡 She → was born', explanation:'<strong>Was born</strong> — singular past passive.', context:'Famous Swedish actress.' },
-    { q:'Marie Curie _____ (be born) in Poland in 1867.', accepted:['was born'], hint:'💡 She → was born', explanation:'<strong>Was born</strong> — singular past.', context:'Famous scientist from Poland.' },
-    { q:'Neil and Suzy _____ (be born) in England.', accepted:['were born'], hint:'💡 Two people → were born', explanation:'<strong>Were born</strong> — plural past.', context:'Seven Up! children.' },
+
+
+
   ];
 
   let questions=[], current=0, correctCount=0, answered=false, attemptNumber=1, userId=null;
@@ -267,7 +267,7 @@
     document.getElementById('progressLabel').textContent=current+' / 10';
     document.getElementById('qtext').textContent=q.q;
     document.getElementById('qcontext').textContent=q.context;
-    document.getElementById('hintChip').textContent=q.hint;
+
 
     const input=document.getElementById('answerInput');
     input.value='';
