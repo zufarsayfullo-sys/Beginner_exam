@@ -522,6 +522,35 @@
       username   = 'devuser';
     }
 
+    // ── Check profile & approval before showing home ──
+    try {
+      const { data: existing } = await db
+        .from('exam_users')
+        .select('id, display_name, approved')
+        .eq('telegram_id', telegramId)
+        .single();
+
+      if (!existing) {
+        // No profile yet — go to profile setup
+        window.location.replace('./profile.html');
+        return;
+      }
+      if (!existing.approved) {
+        // Profile exists but not approved yet
+        window.location.replace('./profile.html');
+        return;
+      }
+      // Approved — use display name if available
+      if (existing.display_name) {
+        firstName = existing.display_name.split(' ')[0];
+        lastName  = existing.display_name.split(' ').slice(1).join(' ');
+      }
+    } catch(e) {
+      // Can't reach Supabase — redirect to profile to be safe
+      window.location.replace('./profile.html');
+      return;
+    }
+
     const displayName = firstName + (lastName ? ' ' + lastName : '');
     document.getElementById('greeting').textContent = 'Hi ' + firstName + ' — ready to practice?';
     document.getElementById('avatarEl').textContent = initials(displayName);
