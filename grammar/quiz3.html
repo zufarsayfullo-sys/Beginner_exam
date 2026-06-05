@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Quiz 3 — Word Order</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    :root{--purple-dark:#26215C;--purple-main:#534AB7;--purple-mid:#7F77DD;--purple-light:#CECBF6;--purple-pale:#EEEDFE;--teal-dark:#085041;--teal-main:#0F6E56;--teal-pale:#E1F5EE;--coral-dark:#712B13;--coral-main:#993C1D;--coral-pale:#FAECE7;--bg:#F0EEF8;--radius:14px;--radius-sm:10px;}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);}
+    #quizScreen{height:100%;display:flex;flex-direction:column;}
+    .header{background:var(--purple-main);padding:10px 18px 16px;flex-shrink:0;}
+    .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .back-btn{display:flex;align-items:center;gap:5px;color:var(--purple-light);font-size:13px;cursor:pointer;text-decoration:none;}
+    .back-btn i{font-size:16px;}
+    .home-btn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;font-weight:500;padding:6px 13px;border-radius:20px;cursor:pointer;text-decoration:none;}
+    .home-btn i{font-size:14px;}
+    .progress-row{display:flex;align-items:center;gap:10px;}
+    .progress-track{flex:1;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;overflow:hidden;}
+    .progress-fill{height:100%;background:#fff;border-radius:3px;transition:width 0.4s ease;width:0%;}
+    .progress-label{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;min-width:40px;text-align:right;}
+    .scroll{flex:1;overflow-y:auto;padding:20px 16px 30px;-webkit-overflow-scrolling:touch;}
+    .scroll::-webkit-scrollbar{width:0;}
+    .qtopic{font-size:11px;font-weight:600;color:var(--purple-main);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;}
+    .qlabel{font-size:13px;color:#888;margin-bottom:12px;font-style:italic;line-height:1.5;}
+    .word-bank{background:#fff;border-radius:var(--radius-sm);padding:14px;border:0.5px solid var(--purple-light);margin-bottom:16px;}
+    .word-bank-label{font-size:10px;font-weight:600;color:var(--purple-main);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;}
+    .chips{display:flex;flex-wrap:wrap;gap:7px;}
+    .chip{background:var(--purple-pale);color:var(--purple-dark);font-size:14px;font-weight:500;padding:6px 12px;border-radius:20px;border:1.5px solid var(--purple-light);cursor:pointer;transition:all 0.15s;user-select:none;}
+    .chip:active{transform:scale(0.95);}
+    .chip.used{background:#f0f0f0;color:#bbb;border-color:#e0e0e0;cursor:default;}
+    .answer-area{background:#fff;border:2px solid var(--purple-light);border-radius:var(--radius);padding:14px;min-height:54px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px;transition:border-color 0.2s;}
+    .answer-area.correct{border-color:var(--teal-main);background:var(--teal-pale);}
+    .answer-area.wrong{border-color:var(--coral-main);background:var(--coral-pale);}
+    .answer-area.empty-hint{border-style:dashed;}
+    .placed-chip{background:var(--purple-main);color:#fff;font-size:14px;font-weight:500;padding:6px 12px;border-radius:20px;cursor:pointer;transition:all 0.15s;}
+    .placed-chip:active{transform:scale(0.95);}
+    .answer-area.correct .placed-chip{background:var(--teal-main);}
+    .answer-area.wrong .placed-chip{background:var(--coral-main);}
+    .area-placeholder{font-size:13px;color:#bbb;font-style:italic;}
+    .clear-row{display:flex;justify-content:flex-end;margin-bottom:16px;}
+    .clear-btn{font-size:12px;color:#aaa;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;padding:4px 0;}
+    .clear-btn i{font-size:14px;}
+    .feedback-box{border-radius:var(--radius-sm);padding:12px 14px;display:none;align-items:flex-start;gap:9px;margin-bottom:18px;animation:fadeUp 0.25s ease both;}
+    .feedback-box.show{display:flex;}
+    .feedback-box.correct-fb{background:var(--teal-pale);}
+    .feedback-box.wrong-fb{background:var(--coral-pale);}
+    .fb-icon{font-size:17px;flex-shrink:0;}
+    .fb-text{font-size:13px;line-height:1.55;}
+    .feedback-box.correct-fb .fb-text{color:var(--teal-dark);}
+    .feedback-box.wrong-fb .fb-text{color:var(--coral-dark);}
+    .check-btn{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;transition:opacity 0.2s;}
+    .check-btn:disabled{opacity:0.35;cursor:not-allowed;}
+    .check-btn i{font-size:17px;}
+    .next-btn{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:none;align-items:center;justify-content:center;gap:8px;animation:fadeUp 0.25s ease both;}
+    .next-btn.show{display:flex;}
+    .next-btn i{font-size:17px;}
+    #resultScreen{display:none;flex-direction:column;height:100%;}
+    #resultScreen.show{display:flex;}
+    .result-header{background:var(--purple-main);padding:10px 18px 16px;flex-shrink:0;}
+    .result-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .result-scroll{flex:1;overflow-y:auto;padding:24px 18px 30px;display:flex;flex-direction:column;align-items:center;}
+    .result-emoji{font-size:54px;text-align:center;margin-bottom:10px;}
+    .result-title{font-size:21px;font-weight:700;color:var(--purple-dark);text-align:center;margin-bottom:4px;}
+    .result-sub{font-size:13px;color:#999;text-align:center;margin-bottom:24px;}
+    .score-circle{width:116px;height:116px;border-radius:50%;background:var(--purple-pale);border:4px solid var(--purple-main);display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:24px;}
+    .score-num{font-size:32px;font-weight:700;color:var(--purple-main);line-height:1;}
+    .score-lbl{font-size:11px;color:#888;margin-top:4px;}
+    .result-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;margin-bottom:24px;}
+    .rstat{background:#fff;border-radius:var(--radius-sm);padding:12px 10px;text-align:center;border:0.5px solid #E0DEFA;}
+    .rstat-val{font-size:20px;font-weight:700;}
+    .rstat-lbl{font-size:10px;color:#888;margin-top:3px;}
+    .rstat.c .rstat-val{color:var(--teal-main);}
+    .rstat.w .rstat-val{color:var(--coral-main);}
+    .rstat.a .rstat-val{color:var(--purple-main);}
+    .result-btns{display:flex;flex-direction:column;gap:9px;width:100%;}
+    .btn-retry{width:100%;background:var(--purple-main);color:#fff;border:none;border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .btn-back{width:100%;background:#fff;color:var(--purple-main);border:1.5px solid var(--purple-light);border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .btn-retry i,.btn-back i{font-size:17px;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  </style>
+</head>
+<body>
+
+<div id="quizScreen">
+  <div class="header">
+    <div class="header-top">
+      <a class="back-btn" href="./index.html"><i class="ti ti-arrow-left"></i> Grammar</a>
+      <a class="home-btn" href="../index.html"><i class="ti ti-home"></i> Main menu</a>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-label" id="progressLabel">0 / 10</span>
+    </div>
+  </div>
+  <div class="scroll" id="quizScroll">
+    <div class="qtopic">Word Order</div>
+    <div class="qlabel">Tap the words in the correct order to make a sentence.</div>
+    <div class="word-bank" id="wordBank">
+      <div class="word-bank-label">Words</div>
+      <div class="chips" id="chipsEl"></div>
+    </div>
+    <div class="answer-area empty-hint" id="answerArea">
+      <span class="area-placeholder" id="areaPlaceholder">Tap words above to build the sentence...</span>
+    </div>
+    <div class="clear-row">
+      <button class="clear-btn" id="clearBtn" onclick="clearAnswer()"><i class="ti ti-backspace"></i> Clear</button>
+    </div>
+    <div class="feedback-box" id="feedbackBox">
+      <span class="fb-icon" id="fbIcon"></span>
+      <div class="fb-text" id="fbText"></div>
+    </div>
+    <button class="check-btn" id="checkBtn" onclick="checkAnswer()" disabled><i class="ti ti-check"></i> Check answer</button>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next question <i class="ti ti-arrow-right"></i></button>
+  </div>
+</div>
+
+<div id="resultScreen">
+  <div class="result-header">
+    <div class="result-header-top">
+      <a class="back-btn" href="./index.html"><i class="ti ti-arrow-left"></i> Grammar</a>
+      <a class="home-btn" href="../index.html"><i class="ti ti-home"></i> Main menu</a>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+      <span class="progress-label">10 / 10</span>
+    </div>
+  </div>
+  <div class="result-scroll">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+    <div class="result-title">Quiz complete!</div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="score-circle">
+      <div class="score-num" id="scoreNum"></div>
+      <div class="score-lbl">Your score</div>
+    </div>
+    <div class="result-stats">
+      <div class="rstat c"><div class="rstat-val" id="resCorrect">0</div><div class="rstat-lbl">Correct</div></div>
+      <div class="rstat w"><div class="rstat-val" id="resWrong">0</div><div class="rstat-lbl">Wrong</div></div>
+      <div class="rstat a"><div class="rstat-val" id="resAttempts">0</div><div class="rstat-lbl">Attempts</div></div>
+    </div>
+    <div class="result-btns">
+      <button class="btn-retry" onclick="retryQuiz()"><i class="ti ti-refresh"></i> Try again</button>
+      <button class="btn-back" onclick="window.location.href='./index.html'"><i class="ti ti-list"></i> Back to Grammar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL='https://wfpphviaosfedotbivtb.supabase.co';
+  const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ';
+  const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const tg=window.Telegram?.WebApp;
+  tg?.ready();tg?.expand();
+
+  const ALL_QUESTIONS=[
+    // like + ing (positive)
+    {words:["I","like","going","out","with","friends","."],        accepted:["I like going out with friends."],          explanation:"<strong>like + -ing:</strong> I like <em>going</em> out."},
+    {words:["She","likes","swimming","and","taking","photos","."], accepted:["She likes swimming and taking photos."],    explanation:"<strong>likes + -ing:</strong> She likes <em>swimming</em> and <em>taking</em> photos."},
+    {words:["He","likes","reading","and","listening","to","music","."], accepted:["He likes reading and listening to music."], explanation:"<strong>likes + -ing</strong> for two hobbies joined with <em>and</em>."},
+    {words:["My","mother","likes","cooking","biscuits","on","Sunday","."], accepted:["My mother likes cooking biscuits on Sunday."], explanation:"<strong>likes + -ing:</strong> likes <em>cooking</em>. Time expression goes at the end."},
+    {words:["Marcin","likes","going","out","in","the","evening","."], accepted:["Marcin likes going out in the evening."],  explanation:"<strong>likes + -ing:</strong> likes <em>going</em> out."},
+    {words:["They","love","watching","sport","on","TV","."],       accepted:["They love watching sport on TV."],           explanation:"<strong>love + -ing:</strong> love <em>watching</em>."},
+    {words:["We","love","travelling","to","new","places","."],     accepted:["We love travelling to new places."],         explanation:"<strong>love + -ing:</strong> love <em>travelling</em>."},
+    {words:["Anja","likes","swimming","and","taking","photos","of","people","."], accepted:["Anja likes swimming and taking photos of people."], explanation:"<strong>likes + -ing</strong> for two activities."},
+    {words:["I","like","playing","video","games","at","the","weekend","."], accepted:["I like playing video games at the weekend."], explanation:"<strong>like + -ing:</strong> like <em>playing</em>. Time at the end."},
+    {words:["She","loves","going","to","the","cinema","on","Fridays","."], accepted:["She loves going to the cinema on Fridays."], explanation:"<strong>loves + -ing:</strong> loves <em>going</em>."},
+
+    // don't / doesn't like + ing (negative)
+    {words:["He","does","not","like","hot","tea","."],             accepted:["He does not like hot tea."],                 explanation:"Negative: <strong>does not like</strong> + noun. No -ing needed with a noun."},
+    {words:["Lola","does","not","like","watching","TV","."],       accepted:["Lola does not like watching TV."],           explanation:"<strong>does not like + -ing:</strong> does not like <em>watching</em>."},
+    {words:["I","don't","like","getting","up","early","."],        accepted:["I don't like getting up early."],            explanation:"<strong>don't like + -ing:</strong> don't like <em>getting</em> up."},
+    {words:["He","doesn't","like","going","out","much","."],       accepted:["He doesn't like going out much."],           explanation:"<strong>doesn't like + -ing:</strong> doesn't like <em>going</em> out."},
+    {words:["They","don't","like","cooking","at","home","."],      accepted:["They don't like cooking at home."],          explanation:"<strong>don't like + -ing:</strong> don't like <em>cooking</em>."},
+    {words:["She","doesn't","like","working","at","the","weekend","."], accepted:["She doesn't like working at the weekend."], explanation:"<strong>doesn't like + -ing:</strong> doesn't like <em>working</em>."},
+    {words:["I","hate","getting","up","early","in","the","morning","."], accepted:["I hate getting up early in the morning."], explanation:"<strong>hate + -ing:</strong> hate <em>getting</em> up."},
+    {words:["He","hates","driving","in","the","city","."],         accepted:["He hates driving in the city."],             explanation:"<strong>hates + -ing:</strong> hates <em>driving</em>."},
+
+    // questions with like + ing
+    {words:["Do","you","like","eating","fast","food","?"],         accepted:["Do you like eating fast food?"],             explanation:"Question: <strong>Do you like + -ing?</strong> like <em>eating</em>."},
+    {words:["Do","you","like","going","out","often","?"],          accepted:["Do you like going out often?"],              explanation:"Question: <strong>Do you like + -ing?</strong>"},
+    {words:["Does","she","like","playing","sport","?"],            accepted:["Does she like playing sport?"],              explanation:"Question: <strong>Does she like + -ing?</strong>"},
+    {words:["Do","they","like","listening","to","music","?"],      accepted:["Do they like listening to music?"],          explanation:"Question: <strong>Do they like + -ing?</strong>"},
+    {words:["What","do","you","like","doing","in","your","free","time","?"], accepted:["What do you like doing in your free time?"], explanation:"Wh- question: <strong>What do you like + -ing?</strong>"},
+    {words:["What","does","she","like","doing","at","the","weekend","?"], accepted:["What does she like doing at the weekend?"], explanation:"Wh- question: <strong>What does she like + -ing?</strong>"},
+
+    // spelling rules: verb + ing
+    {words:["I","like","having","coffee","in","the","morning","."], accepted:["I like having coffee in the morning."],    explanation:"<em>have</em> → <strong>having</strong> (drop -e, add -ing)."},
+    {words:["She","loves","making","things","at","home","."],       accepted:["She loves making things at home."],         explanation:"<em>make</em> → <strong>making</strong> (drop -e, add -ing)."},
+    {words:["He","likes","running","in","the","park","."],          accepted:["He likes running in the park."],            explanation:"<em>run</em> → <strong>running</strong> (vowel + consonant → double consonant + -ing)."},
+    {words:["I","love","taking","photos","of","people","."],        accepted:["I love taking photos of people."],          explanation:"<em>take</em> → <strong>taking</strong> (drop -e, add -ing)."},
+    {words:["She","likes","writing","in","her","diary","."],        accepted:["She likes writing in her diary."],          explanation:"<em>write</em> → <strong>writing</strong> (drop -e, add -ing)."},
+    {words:["He","loves","swimming","in","the","sea","."],          accepted:["He loves swimming in the sea."],            explanation:"<em>swim</em> → <strong>swimming</strong> (vowel + consonant → double + -ing)."},
+    {words:["I","like","shopping","online","at","the","weekend","."], accepted:["I like shopping online at the weekend."], explanation:"<em>shop</em> → <strong>shopping</strong> (vowel + consonant → double + -ing)."},
+
+    // love / hate + ing
+    {words:["I","love","going","to","the","cinema","on","Saturdays","."], accepted:["I love going to the cinema on Saturdays."], explanation:"<strong>love + -ing:</strong> love <em>going</em>."},
+    {words:["She","hates","playing","football","."],               accepted:["She hates playing football."],               explanation:"<strong>hates + -ing:</strong> hates <em>playing</em>."},
+    {words:["We","love","cooking","together","at","home","."],     accepted:["We love cooking together at home."],         explanation:"<strong>love + -ing:</strong> love <em>cooking</em>."},
+    {words:["I","hate","working","late","at","night","."],         accepted:["I hate working late at night."],             explanation:"<strong>hate + -ing:</strong> hate <em>working</em>."},
+  ];
+
+  let questions=[],current=0,correctCount=0,answered=false,attemptNumber=1,userId=null;
+  let placedWords=[],chipStates=[];
+
+  async function getTelegramId(){if(tg?.initDataUnsafe?.user)return String(tg.initDataUnsafe.user.id);return localStorage.getItem('dev_tg_id')||'dev_user';}
+
+  async function loadUser(){
+    try{
+      const tid=await getTelegramId();
+      const{data}=await db.from('exam_users').select('id').eq('telegram_id',tid).single();
+      userId=data?.id||null;
+      if(userId){const{data:att}=await db.from('exam_quiz_attempts').select('id').eq('user_id',userId).eq('skill','grammar').eq('quiz_id',3);attemptNumber=(att?.length||0)+1;}
+    }catch(e){console.error(e);}
+  }
+
+  async function saveAttempt(score){
+    if(!userId)return;
+    try{
+      await db.from('exam_quiz_attempts').insert({user_id:userId,skill:'grammar',quiz_id:3,score});
+      const{data:prog}=await db.from('exam_progress').select('id,tasks_done').eq('user_id',userId).eq('skill','grammar').single();
+      if(prog){await db.from('exam_progress').update({tasks_done:Math.max(prog.tasks_done,3),updated_at:new Date().toISOString()}).eq('id',prog.id);}
+      else{await db.from('exam_progress').insert({user_id:userId,skill:'grammar',tasks_done:1,tasks_total:8});}
+    }catch(e){console.error(e);}
+  }
+
+  function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+  function normalize(str){return str.trim().toLowerCase().replace(/['']/g,"'").replace(/\s+/g,' ');}
+
+  function startQuiz(){
+    questions=shuffle(ALL_QUESTIONS).slice(0,10);
+    current=0;correctCount=0;answered=false;
+    document.getElementById('quizScreen').style.display='flex';
+    document.getElementById('resultScreen').classList.remove('show');
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    answered=false;placedWords=[];
+    const q=questions[current];
+    document.getElementById('progressFill').style.width=(current/10)*100+'%';
+    document.getElementById('progressLabel').textContent=current+' / 10';
+    chipStates=shuffle([...q.words]).map((w,i)=>({word:w,index:i,used:false}));
+    renderChips();renderAnswerArea();
+    document.getElementById('feedbackBox').className='feedback-box';
+    document.getElementById('checkBtn').style.display='flex';
+    document.getElementById('checkBtn').disabled=true;
+    document.getElementById('nextBtn').classList.remove('show');
+    document.getElementById('quizScroll').scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function renderChips(){
+    const c=document.getElementById('chipsEl');c.innerHTML='';
+    chipStates.forEach((chip,i)=>{
+      const d=document.createElement('div');
+      d.className='chip'+(chip.used?' used':'');
+      d.textContent=chip.word;
+      if(!chip.used)d.addEventListener('click',()=>placeWord(i));
+      c.appendChild(d);
+    });
+  }
+
+  function renderAnswerArea(){
+    const area=document.getElementById('answerArea');
+    const ph=document.getElementById('areaPlaceholder');
+    area.innerHTML='';
+    if(placedWords.length===0){
+      area.classList.add('empty-hint');area.appendChild(ph);ph.style.display='';
+    }else{
+      area.classList.remove('empty-hint');
+      placedWords.forEach((_,pos)=>{
+        const d=document.createElement('div');
+        d.className='placed-chip';d.textContent=placedWords[pos].word;
+        if(!answered)d.addEventListener('click',()=>removeWord(pos));
+        area.appendChild(d);
+      });
+    }
+  }
+
+  function placeWord(i){
+    if(answered||chipStates[i].used)return;
+    chipStates[i].used=true;placedWords.push(chipStates[i]);
+    renderChips();renderAnswerArea();
+    document.getElementById('checkBtn').disabled=false;
+  }
+
+  function removeWord(pos){
+    if(answered)return;
+    const r=placedWords.splice(pos,1)[0];
+    chipStates[r.index].used=false;
+    renderChips();renderAnswerArea();
+    document.getElementById('checkBtn').disabled=placedWords.length===0;
+  }
+
+  function clearAnswer(){
+    if(answered)return;
+    placedWords=[];chipStates.forEach(c=>c.used=false);
+    renderChips();renderAnswerArea();
+    document.getElementById('checkBtn').disabled=true;
+  }
+
+  function checkAnswer(){
+    if(answered)return;answered=true;
+    const q=questions[current];
+    const built=placedWords.map(c=>c.word).join(' ');
+    const correct=q.accepted.some(a=>normalize(a)===normalize(built));
+    if(correct)correctCount++;
+    const area=document.getElementById('answerArea');
+    area.className='answer-area '+(correct?'correct':'wrong');
+    const fb=document.getElementById('feedbackBox');
+    fb.className='feedback-box show '+(correct?'correct-fb':'wrong-fb');
+    document.getElementById('fbIcon').textContent=correct?'✅':'❌';
+    document.getElementById('fbText').innerHTML=correct
+      ?q.explanation
+      :`The correct sentence is: <strong>${q.accepted[0]}</strong><br><br>${q.explanation}`;
+    document.getElementById('checkBtn').style.display='none';
+    const nb=document.getElementById('nextBtn');
+    nb.classList.add('show');
+    nb.innerHTML=current<9?'Next question <i class="ti ti-arrow-right"></i>':'See results <i class="ti ti-trophy"></i>';
+    setTimeout(()=>{document.getElementById('quizScroll').scrollTo({top:999,behavior:'smooth'});},150);
+  }
+
+  function nextQuestion(){current++;if(current>=10)showResult();else renderQuestion();}
+
+  async function showResult(){
+    const score=Math.round((correctCount/10)*100);
+    await saveAttempt(score);
+    document.getElementById('resultEmoji').textContent=score>=80?'🎉':score>=60?'👍':'💪';
+    document.getElementById('resultSub').textContent=`Word Order · Attempt ${attemptNumber}`;
+    document.getElementById('scoreNum').textContent=score+'%';
+    document.getElementById('resCorrect').textContent=correctCount;
+    document.getElementById('resWrong').textContent=10-correctCount;
+    document.getElementById('resAttempts').textContent=attemptNumber;
+    document.getElementById('quizScreen').style.display='none';
+    document.getElementById('resultScreen').classList.add('show');
+  }
+
+  function retryQuiz(){attemptNumber++;startQuiz();}
+  async function init(){await loadUser();startQuiz();}
+  init();
+</script>
+</body>
+</html>
