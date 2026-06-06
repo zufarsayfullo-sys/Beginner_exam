@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Dashboard — ExamPrep</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    :root {
+      --purple-dark:  #26215C;
+      --purple-main:  #534AB7;
+      --purple-mid:   #7F77DD;
+      --purple-light: #CECBF6;
+      --purple-pale:  #EEEDFE;
+      --teal-main:    #0F6E56;
+      --teal-pale:    #E1F5EE;
+      --teal-light:   #9FE1CB;
+      --coral-main:   #993C1D;
+      --coral-pale:   #FAECE7;
+      --coral-light:  #F5C4B3;
+      --amber-main:   #BA7517;
+      --amber-pale:   #FAEEDA;
+      --amber-light:  #FAC775;
+      --bg:           #F0EEF8;
+      --sidebar-w:    220px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--purple-dark); }
+
+    /* ── LOGIN ── */
+    #loginScreen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: var(--purple-main);
+    }
+    .login-card {
+      background: #fff; border-radius: 20px; padding: 40px 36px;
+      width: 400px; text-align: center;
+      box-shadow: 0 20px 60px rgba(83,74,183,0.25);
+    }
+    .login-logo { font-size: 36px; margin-bottom: 10px; }
+    .login-title { font-size: 22px; font-weight: 600; color: var(--purple-dark); margin-bottom: 4px; }
+    .login-sub { font-size: 13px; color: #888; margin-bottom: 28px; }
+    .teacher-btns { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+    .teacher-btn {
+      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+      border: 2px solid #E0DEFA; border-radius: 12px; cursor: pointer;
+      background: #fff; transition: all 0.15s; text-align: left;
+    }
+    .teacher-btn:hover { border-color: var(--purple-light); background: var(--purple-pale); }
+    .teacher-btn.selected { border-color: var(--purple-main); background: var(--purple-pale); }
+    .t-av { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+    .t-av.z { background: var(--purple-pale); color: var(--purple-main); }
+    .t-av.f { background: var(--teal-pale); color: var(--teal-main); }
+    .t-name { font-size: 14px; font-weight: 600; color: var(--purple-dark); }
+    .t-role { font-size: 11px; color: #888; margin-top: 1px; }
+    .t-check { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #E0DEFA; display: flex; align-items: center; justify-content: center; }
+    .teacher-btn.selected .t-check { background: var(--purple-main); border-color: var(--purple-main); color: #fff; }
+    .pin-label { font-size: 11px; font-weight: 600; color: var(--purple-main); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; text-align: left; }
+    .pin-input {
+      width: 100%; border: 2px solid #E0DEFA; border-radius: 12px;
+      padding: 13px 16px; font-size: 20px; letter-spacing: 8px; text-align: center;
+      font-family: 'DM Sans', sans-serif; outline: none; margin-bottom: 20px;
+      color: var(--purple-dark); transition: border-color 0.2s;
+    }
+    .pin-input:focus { border-color: var(--purple-main); }
+    .pin-input.error { border-color: var(--coral-main); background: var(--coral-pale); }
+    .login-btn {
+      width: 100%; background: var(--purple-main); color: #fff; border: none;
+      border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .login-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .login-btn i { font-size: 17px; }
+    .login-error { font-size: 13px; color: var(--coral-main); margin-top: 10px; display: none; }
+    .login-error.show { display: block; }
+
+    /* ── APP SHELL ── */
+    #app { display: none; height: 100vh; }
+    #app.show { display: flex; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: var(--sidebar-w); background: var(--purple-main);
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .sb-head { padding: 20px 16px 16px; border-bottom: 0.5px solid rgba(255,255,255,0.12); }
+    .sb-logo { font-size: 15px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+    .sb-logo i { font-size: 18px; color: var(--purple-light); }
+    .sb-teacher { font-size: 12px; color: var(--purple-light); }
+    .sb-nav { padding: 12px 8px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .sb-item {
+      display: flex; align-items: center; gap: 9px; padding: 9px 10px;
+      border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--purple-light);
+      transition: all 0.15s; user-select: none;
+    }
+    .sb-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .sb-item.on { background: rgba(255,255,255,0.16); color: #fff; font-weight: 500; }
+    .sb-item i { font-size: 17px; }
+    .sb-badge { margin-left: auto; background: var(--coral-pale); color: #712B13; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+    .sb-logout { padding: 12px 16px; border-top: 0.5px solid rgba(255,255,255,0.12); }
+    .logout-btn { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--purple-light); cursor: pointer; padding: 8px 10px; border-radius: 8px; }
+    .logout-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .logout-btn i { font-size: 16px; }
+
+    /* MAIN */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar {
+      padding: 14px 24px; border-bottom: 0.5px solid #E0DEFA;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; flex-shrink: 0;
+    }
+    .page-title { font-size: 16px; font-weight: 600; color: var(--purple-dark); }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .t-btn {
+      font-size: 12px; font-weight: 500; padding: 7px 14px;
+      border-radius: 8px; border: 0.5px solid #E0DEFA;
+      background: #fff; color: #555; cursor: pointer;
+      display: flex; align-items: center; gap: 5px; transition: all 0.15s;
+    }
+    .t-btn:hover { background: var(--bg); }
+    .t-btn.primary { background: var(--purple-main); color: #fff; border-color: var(--purple-main); }
+    .t-btn.danger  { background: var(--coral-pale); color: var(--coral-main); border-color: var(--coral-light); }
+    .t-btn i { font-size: 14px; }
+    .content { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
+    .content::-webkit-scrollbar { width: 6px; }
+    .content::-webkit-scrollbar-thumb { background: var(--purple-light); border-radius: 3px; }
+
+    /* PAGES */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* STATS STRIP */
+    .stats-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 24px; }
+    .scard { background: #fff; border-radius: 12px; padding: 16px 18px; border: 0.5px solid #E0DEFA; }
+    .scard-lbl { font-size: 11px; color: #888; margin-bottom: 5px; }
+    .scard-val { font-size: 24px; font-weight: 600; }
+    .scard-val.purple { color: var(--purple-main); }
+    .scard-val.amber  { color: var(--amber-main); }
+    .scard-val.teal   { color: var(--teal-main); }
+
+    /* SECTION */
+    .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; margin-top: 4px; }
+    .sec-title { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* TABLES */
+    .table-wrap { background: #fff; border-radius: 12px; border: 0.5px solid #E0DEFA; overflow: hidden; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; font-size: 11px; font-weight: 600; color: #888; padding: 10px 16px; border-bottom: 0.5px solid #E0DEFA; background: var(--bg); text-transform: uppercase; letter-spacing: 0.04em; }
+    td { padding: 12px 16px; border-bottom: 0.5px solid #F5F3FE; color: var(--purple-dark); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #FAFAFE; }
+    .badge { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; display: inline-block; }
+    .badge.pending  { background: var(--amber-pale); color: #633806; }
+    .badge.approved { background: var(--teal-pale); color: #085041; }
+    .action-row { display: flex; gap: 6px; }
+    .btn-xs { font-size: 11px; font-weight: 500; padding: 5px 10px; border-radius: 6px; border: 0.5px solid #E0DEFA; background: #fff; cursor: pointer; transition: all 0.15s; }
+    .btn-xs.approve { background: var(--teal-pale); color: var(--teal-main); border-color: var(--teal-light); }
+    .btn-xs.approve:hover { background: var(--teal-main); color: #fff; }
+    .btn-xs.reject  { background: var(--coral-pale); color: var(--coral-main); border-color: var(--coral-light); }
+    .btn-xs.reject:hover  { background: var(--coral-main); color: #fff; }
+    .btn-xs.remove  { background: var(--coral-pale); color: var(--coral-main); border-color: var(--coral-light); }
+    .btn-xs.remove:hover  { background: var(--coral-main); color: #fff; }
+    .empty-state { text-align: center; padding: 32px; color: #aaa; font-size: 13px; }
+    .empty-state i { font-size: 28px; display: block; margin-bottom: 8px; }
+
+    /* RESULTS PAGE */
+    .skill-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .skill-tab { font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 20px; border: 0.5px solid #E0DEFA; background: #fff; color: #666; cursor: pointer; transition: all 0.15s; }
+    .skill-tab.on { background: var(--purple-main); color: #fff; border-color: var(--purple-main); }
+    .score-cell { font-weight: 600; }
+    .score-cell.high { color: var(--teal-main); }
+    .score-cell.mid  { color: var(--amber-main); }
+    .score-cell.low  { color: var(--coral-main); }
+    .score-cell.none { color: #ccc; font-weight: 400; }
+
+    /* QUIZ PAGE */
+    .quiz-setup { background: #fff; border-radius: 12px; border: 0.5px solid #E0DEFA; padding: 20px; margin-bottom: 20px; }
+    .quiz-setup-title { font-size: 14px; font-weight: 600; color: var(--purple-dark); margin-bottom: 14px; }
+    .quiz-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+    .quiz-opt { border: 1.5px solid #E0DEFA; border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.15s; }
+    .quiz-opt:hover { border-color: var(--purple-light); background: var(--purple-pale); }
+    .quiz-opt.selected { border-color: var(--purple-main); background: var(--purple-pale); }
+    .quiz-opt-name { font-size: 12px; font-weight: 600; color: var(--purple-dark); margin-bottom: 2px; }
+    .quiz-opt-sub { font-size: 10px; color: #888; }
+    .start-quiz-btn { background: var(--purple-main); color: #fff; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 7px; }
+    .start-quiz-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .start-quiz-btn i { font-size: 16px; }
+
+    /* ACTIVE QUIZ PANEL */
+    .active-quiz-panel { background: #fff; border-radius: 12px; border: 0.5px solid #E0DEFA; overflow: hidden; margin-bottom: 20px; display: none; }
+    .active-quiz-panel.show { display: block; }
+    .aq-head { background: var(--purple-main); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .aq-title { font-size: 14px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .aq-live { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.15); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 20px; }
+    .aq-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #9FE1CB; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+    .aq-body { padding: 20px; }
+    .code-display { background: var(--purple-pale); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px; border: 2px dashed var(--purple-light); }
+    .code-lbl { font-size: 11px; font-weight: 600; color: var(--purple-main); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .code-val { font-size: 42px; font-weight: 700; color: var(--purple-dark); letter-spacing: 10px; }
+    .code-sub { font-size: 12px; color: var(--purple-mid); margin-top: 6px; }
+    .aq-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .aq-tab { font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 8px; border: 0.5px solid #E0DEFA; background: #fff; color: #666; cursor: pointer; }
+    .aq-tab.on { background: var(--purple-main); color: #fff; border-color: var(--purple-main); }
+    .aq-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+    .aq-sum-card { background: var(--bg); border-radius: 8px; padding: 10px 12px; text-align: center; }
+    .aq-sum-val { font-size: 20px; font-weight: 600; }
+    .aq-sum-lbl { font-size: 10px; color: #888; margin-top: 2px; }
+
+    /* LIVE PROGRESS TABLE */
+    .prog-table { width: 100%; }
+    .prog-row-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid #F5F3FE; }
+    .prog-row-item:last-child { border-bottom: none; }
+    .prog-av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .prog-name { font-size: 13px; font-weight: 500; color: var(--purple-dark); width: 150px; flex-shrink: 0; }
+    .prog-bar-wrap { flex: 1; }
+    .prog-bar-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .prog-bar-q { font-size: 11px; color: #888; }
+    .prog-bar-pct { font-size: 11px; font-weight: 600; }
+    .prog-bar { height: 7px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+    .prog-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .prog-status { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; min-width: 70px; text-align: center; }
+    .ps-done     { background: var(--teal-pale); color: #085041; }
+    .ps-progress { background: var(--purple-pale); color: #3C3489; }
+    .ps-waiting  { background: var(--bg); color: #888; border: 0.5px solid #E0DEFA; }
+    .ps-rank     { background: var(--amber-pale); color: #633806; }
+
+    /* END QUIZ BTN */
+    .end-quiz-btn { background: var(--coral-main); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .end-quiz-btn i { font-size: 15px; }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--purple-dark); color: #fff; font-size: 13px; font-weight: 500; padding: 10px 22px; border-radius: 20px; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 200; white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* CONFIRM MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(38,33,92,0.35); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: #fff; border-radius: 16px; padding: 28px 28px 24px; width: 380px; text-align: center; }
+    .modal-icon { font-size: 36px; margin-bottom: 12px; }
+    .modal-title { font-size: 17px; font-weight: 600; color: var(--purple-dark); margin-bottom: 6px; }
+    .modal-sub { font-size: 13px; color: #888; line-height: 1.6; margin-bottom: 20px; }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-cancel { flex: 1; background: var(--bg); color: #666; border: 0.5px solid #E0DEFA; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .modal-confirm { flex: 1; background: var(--coral-main); color: #fff; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🏫</div>
+    <div class="login-title">Teacher Dashboard</div>
+    <div class="login-sub">Select your name and enter your PIN</div>
+    <div class="teacher-btns">
+      <div class="teacher-btn" id="btn-zufar" onclick="selectTeacher('mr_zufar','Mr Zufar','z')">
+        <div class="t-av z">MZ</div>
+        <div><div class="t-name">Mr Zufar</div><div class="t-role">English teacher</div></div>
+        <div class="t-check" id="chk-zufar"></div>
+      </div>
+      <div class="teacher-btn" id="btn-farrux" onclick="selectTeacher('mr_farrux','Mr Farrux','f')">
+        <div class="t-av f">MF</div>
+        <div><div class="t-name">Mr Farrux</div><div class="t-role">English teacher</div></div>
+        <div class="t-check" id="chk-farrux"></div>
+      </div>
+    </div>
+    <div class="pin-label">PIN</div>
+    <input class="pin-input" id="pinInput" type="password" maxlength="6" placeholder="••••" oninput="onPinInput()" onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>
+      <i class="ti ti-arrow-right"></i> Enter dashboard
+    </button>
+    <div class="login-error" id="loginError">Incorrect PIN. Please try again.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sb-head">
+      <div class="sb-logo"><i class="ti ti-school"></i> ExamPrep</div>
+      <div class="sb-teacher" id="sbTeacherName">—</div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-item on" data-page="students" onclick="navTo('students')">
+        <i class="ti ti-users"></i> Students
+        <span class="sb-badge" id="pendingBadge" style="display:none;">0</span>
+      </div>
+      <div class="sb-item" data-page="results" onclick="navTo('results')">
+        <i class="ti ti-chart-bar"></i> Results
+      </div>
+      <div class="sb-item" data-page="quiz" onclick="navTo('quiz')">
+        <i class="ti ti-tournament"></i> Classroom quiz
+      </div>
+    </div>
+    <div class="sb-logout">
+      <div class="logout-btn" onclick="doLogout()">
+        <i class="ti ti-logout"></i> Log out
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="topbarTitle">Students</div>
+      <div class="topbar-actions" id="topbarActions"></div>
+    </div>
+    <div class="content">
+
+      <!-- STUDENTS PAGE -->
+      <div class="page active" id="page-students">
+        <div class="stats-strip">
+          <div class="scard"><div class="scard-lbl">Total students</div><div class="scard-val purple" id="statTotal">—</div></div>
+          <div class="scard"><div class="scard-lbl">Pending approval</div><div class="scard-val amber" id="statPending">—</div></div>
+          <div class="scard"><div class="scard-lbl">Approved</div><div class="scard-val teal" id="statApproved">—</div></div>
+          <div class="scard"><div class="scard-lbl">Active today</div><div class="scard-val" id="statActive">—</div></div>
+        </div>
+
+        <div class="sec-head"><span class="sec-title">Pending approval</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Telegram</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody id="pendingBody"><tr><td colspan="4" class="empty-state"><i class="ti ti-clock"></i>No pending students</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="sec-head">
+          <span class="sec-title">Approved students</span>
+          <button class="t-btn danger" onclick="confirmRemoveAll()"><i class="ti ti-trash"></i> Remove all</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Telegram</th><th>Last seen</th><th>Actions</th></tr></thead>
+            <tbody id="approvedBody"><tr><td colspan="4" class="empty-state"><i class="ti ti-users"></i>No approved students yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RESULTS PAGE -->
+      <div class="page" id="page-results">
+        <div class="skill-tabs" id="skillTabs">
+          <div class="skill-tab on" data-skill="all" onclick="filterSkill('all')">All skills</div>
+          <div class="skill-tab" data-skill="grammar" onclick="filterSkill('grammar')">Grammar</div>
+          <div class="skill-tab" data-skill="vocabulary" onclick="filterSkill('vocabulary')">Vocabulary</div>
+          <div class="skill-tab" data-skill="writing" onclick="filterSkill('writing')">Writing</div>
+          <div class="skill-tab" data-skill="speaking" onclick="filterSkill('speaking')">Speaking</div>
+          <div class="skill-tab" data-skill="reading" onclick="filterSkill('reading')">Reading</div>
+          <div class="skill-tab" data-skill="listening" onclick="filterSkill('listening')">Listening</div>
+        </div>
+        <div class="table-wrap">
+          <table id="resultsTable">
+            <thead id="resultsHead"></thead>
+            <tbody id="resultsBody"><tr><td colspan="4" class="empty-state"><i class="ti ti-chart-bar"></i>No results yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- QUIZ PAGE -->
+      <div class="page" id="page-quiz">
+        <div class="active-quiz-panel" id="activeQuizPanel">
+          <div class="aq-head">
+            <div class="aq-title"><i class="ti ti-tournament"></i> <span id="aqTitle">—</span></div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="aq-live"><div class="aq-live-dot"></div> Live</div>
+              <button class="end-quiz-btn" onclick="endQuiz()"><i class="ti ti-player-stop"></i> End quiz</button>
+            </div>
+          </div>
+          <div class="aq-body">
+            <div class="code-display">
+              <div class="code-lbl">Class code — show this to students</div>
+              <div class="code-val" id="aqCode">—</div>
+              <div class="code-sub">Students enter this in their Telegram app to join</div>
+            </div>
+            <div class="aq-tabs">
+              <div class="aq-tab on" onclick="switchAqTab('progress',this)">Live progress</div>
+              <div class="aq-tab" onclick="switchAqTab('leaderboard',this)">Leaderboard</div>
+            </div>
+            <div class="aq-summary">
+              <div class="aq-sum-card"><div class="aq-sum-val teal" id="aqFinished">0</div><div class="aq-sum-lbl">Finished</div></div>
+              <div class="aq-sum-card"><div class="aq-sum-val purple" id="aqInProgress">0</div><div class="aq-sum-lbl">In progress</div></div>
+              <div class="aq-sum-card"><div class="aq-sum-val" style="color:#888;" id="aqWaiting">0</div><div class="aq-sum-lbl">Waiting</div></div>
+              <div class="aq-sum-card"><div class="aq-sum-val" id="aqJoined">0</div><div class="aq-sum-lbl">Joined</div></div>
+            </div>
+            <div id="aqProgressTab">
+              <div class="prog-table" id="progressTable"></div>
+            </div>
+            <div id="aqLeaderboardTab" style="display:none;">
+              <div class="table-wrap" style="margin-bottom:0;">
+                <table>
+                  <thead><tr><th>#</th><th>Student</th><th>Score</th><th>Time</th></tr></thead>
+                  <tbody id="lbBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="quizSetupPanel">
+          <div class="quiz-setup">
+            <div class="quiz-setup-title">Start a new classroom quiz</div>
+            <div style="font-size:12px;color:#888;margin-bottom:12px;">Select a quiz from any skill:</div>
+            <div class="quiz-select-grid" id="quizSelectGrid"></div>
+            <button class="start-quiz-btn" id="startQuizBtn" onclick="startQuiz()" disabled>
+              <i class="ti ti-player-play"></i> Start quiz & generate code
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Quiz</th><th>Students</th><th>Top score</th><th>Winner</th></tr></thead>
+              <tbody id="quizHistoryBody"><tr><td colspan="5" class="empty-state"><i class="ti ti-history"></i>No quiz history yet</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-icon" id="modalIcon">⚠️</div>
+    <div class="modal-title" id="modalTitle">Are you sure?</div>
+    <div class="modal-sub" id="modalSub">This action cannot be undone.</div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" id="modalConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://wfpphviaosfedotbivtb.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Teacher PINs — change these before deploying
+const TEACHER_PINS = { mr_zufar: '2255', mr_farrux: '7777' };
+
+const QUIZZES = [
+  {id:'grammar-1',  label:'Grammar 1',   sub:'There is/are'},
+  {id:'grammar-2',  label:'Grammar 2',   sub:'Can / Can\'t'},
+  {id:'grammar-3',  label:'Grammar 3',   sub:'Word Order'},
+  {id:'grammar-4',  label:'Grammar 4',   sub:'Past Simple'},
+  {id:'grammar-5',  label:'Grammar 5',   sub:'Questions'},
+  {id:'grammar-6',  label:'Grammar 6',   sub:'Past Simple II'},
+  {id:'grammar-7',  label:'Grammar 7',   sub:'Word Order II'},
+  {id:'grammar-8',  label:'Grammar 8',   sub:'Going To'},
+];
+
+let currentTeacher = null;
+let currentTeacherId = null;
+let students = [];
+let selectedQuiz = null;
+let activeQuizCode = null;
+let liveInterval = null;
+let currentSkillFilter = 'all';
+
+// ── LOGIN ──────────────────────────────────────────────────────────
+let selectedTeacherId = null;
+
+function selectTeacher(id, name, avKey) {
+  selectedTeacherId = id;
+  document.querySelectorAll('.teacher-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.t-check').forEach(c => c.innerHTML = '');
+  document.getElementById('btn-' + id.replace('mr_','')).classList.add('selected');
+  document.getElementById('chk-' + id.replace('mr_','')).innerHTML = '<i class="ti ti-check" style="font-size:11px;"></i>';
+  updateLoginBtn();
+}
+
+function onPinInput() { updateLoginBtn(); }
+function updateLoginBtn() {
+  const pin = document.getElementById('pinInput').value;
+  document.getElementById('loginBtn').disabled = !(selectedTeacherId && pin.length >= 4);
+}
+
+async function doLogin() {
+  const pin = document.getElementById('pinInput').value;
+  if (!selectedTeacherId || !pin) return;
+  if (TEACHER_PINS[selectedTeacherId] !== pin) {
+    document.getElementById('pinInput').classList.add('error');
+    document.getElementById('loginError').classList.add('show');
+    setTimeout(() => {
+      document.getElementById('pinInput').classList.remove('error');
+      document.getElementById('loginError').classList.remove('show');
+      document.getElementById('pinInput').value = '';
+      updateLoginBtn();
+    }, 2000);
+    return;
+  }
+  currentTeacherId = selectedTeacherId;
+  currentTeacher = selectedTeacherId === 'mr_zufar' ? 'Mr Zufar' : 'Mr Farrux';
+  document.getElementById('sbTeacherName').textContent = currentTeacher;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  buildQuizGrid();
+  await loadStudents();
+  await loadQuizHistory();
+}
+
+function doLogout() {
+  currentTeacher = null; currentTeacherId = null;
+  if (liveInterval) clearInterval(liveInterval);
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('pinInput').value = '';
+  selectedTeacherId = null;
+  document.querySelectorAll('.teacher-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.t-check').forEach(c => c.innerHTML = '');
+  updateLoginBtn();
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+function navTo(page) {
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('on'));
+  document.querySelector(`[data-page="${page}"]`).classList.add('on');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const titles = { students: 'Students', results: 'Results', quiz: 'Classroom quiz' };
+  document.getElementById('topbarTitle').textContent = titles[page];
+  if (page === 'results') loadResults();
+}
+
+// ── STUDENTS ──────────────────────────────────────────────────────
+function initials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+}
+
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const diff = Date.now() - new Date(ts);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+async function loadStudents() {
+  const { data } = await db.from('exam_users')
+    .select('*')
+    .eq('teacher_id', currentTeacherId)
+    .order('created_at', { ascending: false });
+
+  students = data || [];
+
+  const pending  = students.filter(s => !s.approved);
+  const approved = students.filter(s => s.approved);
+  const today    = students.filter(s => s.last_seen && new Date(s.last_seen) > new Date(Date.now() - 86400000));
+
+  document.getElementById('statTotal').textContent   = students.length;
+  document.getElementById('statPending').textContent  = pending.length;
+  document.getElementById('statApproved').textContent = approved.length;
+  document.getElementById('statActive').textContent   = today.length;
+
+  const pb = document.getElementById('pendingBadge');
+  if (pending.length > 0) { pb.textContent = pending.length; pb.style.display = ''; }
+  else { pb.style.display = 'none'; }
+
+  // Pending table
+  const pendingBody = document.getElementById('pendingBody');
+  if (pending.length === 0) {
+    pendingBody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="ti ti-clock"></i>No pending students</td></tr>';
+  } else {
+    pendingBody.innerHTML = pending.map(s => `
+      <tr>
+        <td><strong>${s.display_name || s.first_name || '—'}</strong></td>
+        <td style="color:#888;">@${s.username || '—'}</td>
+        <td style="color:#888;">${timeAgo(s.created_at)}</td>
+        <td><div class="action-row">
+          <button class="btn-xs approve" onclick="approveStudent('${s.id}')"><i class="ti ti-check" style="font-size:12px;"></i> Approve</button>
+          <button class="btn-xs reject"  onclick="rejectStudent('${s.id}','${s.display_name||s.first_name}')"><i class="ti ti-x" style="font-size:12px;"></i> Reject</button>
+        </div></td>
+      </tr>`).join('');
+  }
+
+  // Approved table
+  const approvedBody = document.getElementById('approvedBody');
+  if (approved.length === 0) {
+    approvedBody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="ti ti-users"></i>No approved students yet</td></tr>';
+  } else {
+    approvedBody.innerHTML = approved.map(s => `
+      <tr>
+        <td><strong>${s.display_name || s.first_name || '—'}</strong></td>
+        <td style="color:#888;">@${s.username || '—'}</td>
+        <td style="color:#888;">${timeAgo(s.last_seen)}</td>
+        <td><button class="btn-xs remove" onclick="confirmRemoveOne('${s.id}','${s.display_name||s.first_name}')">
+          <i class="ti ti-trash" style="font-size:12px;"></i> Remove
+        </button></td>
+      </tr>`).join('');
+  }
+}
+
+async function approveStudent(id) {
+  await db.from('exam_users').update({ approved: true }).eq('id', id);
+  showToast('Student approved ✓');
+  await loadStudents();
+}
+
+async function rejectStudent(id, name) {
+  showModal('❌', `Reject ${name}?`, 'This will delete their account permanently.', async () => {
+    await db.from('exam_users').delete().eq('id', id);
+    showToast('Student removed');
+    await loadStudents();
+  });
+}
+
+async function confirmRemoveOne(id, name) {
+  showModal('🗑️', `Remove ${name}?`, 'They will need to register again to access the app.', async () => {
+    await db.from('exam_users').delete().eq('id', id);
+    showToast('Student removed');
+    await loadStudents();
+  });
+}
+
+async function confirmRemoveAll() {
+  const approved = students.filter(s => s.approved);
+  if (approved.length === 0) { showToast('No students to remove'); return; }
+  showModal('⚠️', 'Remove all students?', `This will remove all ${approved.length} approved students permanently.`, async () => {
+    const ids = approved.map(s => s.id);
+    await db.from('exam_users').delete().in('id', ids);
+    showToast('All students removed');
+    await loadStudents();
+  });
+}
+
+// ── RESULTS ───────────────────────────────────────────────────────
+const SKILLS = ['grammar','vocabulary','writing','speaking','reading','listening'];
+
+function filterSkill(skill) {
+  currentSkillFilter = skill;
+  document.querySelectorAll('.skill-tab').forEach(t => t.classList.remove('on'));
+  document.querySelector(`[data-skill="${skill}"]`).classList.add('on');
+  renderResults();
+}
+
+let resultsData = { students: [], attempts: [] };
+
+async function loadResults() {
+  const approvedStudents = students.filter(s => s.approved);
+  if (approvedStudents.length === 0) return;
+  const ids = approvedStudents.map(s => s.id);
+  const { data: attempts } = await db
+    .from('exam_quiz_attempts')
+    .select('user_id, skill, quiz_id, score')
+    .in('user_id', ids);
+  resultsData = { students: approvedStudents, attempts: attempts || [] };
+  renderResults();
+}
+
+function renderResults() {
+  const { students: sts, attempts } = resultsData;
+  const skills = currentSkillFilter === 'all' ? SKILLS : [currentSkillFilter];
+
+  // Build head
+  const head = document.getElementById('resultsHead');
+  head.innerHTML = '<tr><th>Student</th>' + skills.map(s => `<th>${s.charAt(0).toUpperCase()+s.slice(1)}</th>`).join('') + '<th>Average</th></tr>';
+
+  if (sts.length === 0) {
+    document.getElementById('resultsBody').innerHTML = '<tr><td colspan="8" class="empty-state"><i class="ti ti-chart-bar"></i>No results yet</td></tr>';
+    return;
+  }
+
+  const rows = sts.map(student => {
+    const scores = skills.map(skill => {
+      const skillAttempts = attempts.filter(a => a.user_id === student.id && a.skill === skill);
+      if (skillAttempts.length === 0) return null;
+      return Math.max(...skillAttempts.map(a => a.score));
+    });
+    const validScores = scores.filter(s => s !== null);
+    const avg = validScores.length ? Math.round(validScores.reduce((a,b)=>a+b,0)/validScores.length) : null;
+
+    const scoreCells = scores.map(s => {
+      if (s === null) return '<td class="score-cell none">—</td>';
+      const cls = s >= 80 ? 'high' : s >= 60 ? 'mid' : 'low';
+      return `<td class="score-cell ${cls}">${s}%</td>`;
+    }).join('');
+
+    const avgCell = avg === null ? '<td class="score-cell none">—</td>'
+      : `<td class="score-cell ${avg>=80?'high':avg>=60?'mid':'low'}" style="font-weight:600;">${avg}%</td>`;
+
+    return `<tr><td><strong>${student.display_name||student.first_name||'—'}</strong></td>${scoreCells}${avgCell}</tr>`;
+  }).join('');
+
+  document.getElementById('resultsBody').innerHTML = rows;
+}
+
+// ── CLASSROOM QUIZ ────────────────────────────────────────────────
+function buildQuizGrid() {
+  const grid = document.getElementById('quizSelectGrid');
+  grid.innerHTML = QUIZZES.map(q => `
+    <div class="quiz-opt" data-qid="${q.id}" onclick="selectQuiz('${q.id}',this)">
+      <div class="quiz-opt-name">${q.label}</div>
+      <div class="quiz-opt-sub">${q.sub}</div>
+    </div>`).join('');
+}
+
+function selectQuiz(id, el) {
+  selectedQuiz = id;
+  document.querySelectorAll('.quiz-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('startQuizBtn').disabled = false;
+}
+
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+async function startQuiz() {
+  if (!selectedQuiz) return;
+  const code = generateCode();
+  activeQuizCode = code;
+  const quizLabel = QUIZZES.find(q => q.id === selectedQuiz)?.label || selectedQuiz;
+
+  // Insert active quiz session
+  await db.from('exam_quiz_sessions').insert({
+    code, quiz_id: selectedQuiz, teacher_id: currentTeacherId,
+    quiz_label: quizLabel, status: 'active'
+  });
+
+  document.getElementById('aqTitle').textContent = quizLabel;
+  document.getElementById('aqCode').textContent = code;
+  document.getElementById('activeQuizPanel').classList.add('show');
+  document.getElementById('quizSetupPanel').style.display = 'none';
+
+  // Start polling live progress
+  liveInterval = setInterval(loadLiveProgress, 3000);
+  loadLiveProgress();
+}
+
+async function loadLiveProgress() {
+  if (!activeQuizCode) return;
+  const { data: participants } = await db
+    .from('exam_quiz_participants')
+    .select('*, exam_users(display_name,first_name)')
+    .eq('session_code', activeQuizCode)
+    .order('score', { ascending: false });
+
+  if (!participants) return;
+  const finished   = participants.filter(p => p.status === 'finished');
+  const inProgress = participants.filter(p => p.status === 'in_progress');
+  const waiting    = participants.filter(p => p.status === 'waiting');
+
+  document.getElementById('aqFinished').textContent   = finished.length;
+  document.getElementById('aqInProgress').textContent = inProgress.length;
+  document.getElementById('aqWaiting').textContent    = waiting.length;
+  document.getElementById('aqJoined').textContent     = participants.length;
+
+  // Progress table
+  const progTable = document.getElementById('progressTable');
+  progTable.innerHTML = participants.map((p, i) => {
+    const name = p.exam_users?.display_name || p.exam_users?.first_name || '—';
+    const inits = initials(name);
+    const colors = ['#EEEDFE/#534AB7','#E1F5EE/#0F6E56','#FAECE7/#993C1D','#FAEEDA/#BA7517'];
+    const [bg, fg] = colors[i % colors.length].split('/');
+    const qDone = p.questions_done || 0;
+    const total = p.questions_total || 10;
+    const pct = total > 0 ? Math.round((qDone / total) * 100) : 0;
+    const score = p.score !== null ? p.score + '%' : '—';
+    const barColor = p.status === 'finished' ? '#0F6E56' : '#534AB7';
+
+    let statusEl;
+    if (p.status === 'finished') {
+      const rank = finished.findIndex(f => f.id === p.id) + 1;
+      const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+      statusEl = `<div class="prog-status ps-rank">${medal} ${rank}${rank===1?'st':rank===2?'nd':rank===3?'rd':'th'} · ${formatTime(p.time_seconds)}</div>`;
+    } else if (p.status === 'in_progress') {
+      statusEl = `<div class="prog-status ps-progress">In progress</div>`;
+    } else {
+      statusEl = `<div class="prog-status ps-waiting">Joined</div>`;
+    }
+
+    return `<div class="prog-row-item">
+      <div class="prog-av" style="background:${bg};color:${fg};">${inits}</div>
+      <div class="prog-name">${name}</div>
+      <div class="prog-bar-wrap">
+        <div class="prog-bar-top">
+          <span class="prog-bar-q">${qDone} / ${total} questions</span>
+          <span class="prog-bar-pct" style="color:${barColor};">${p.status==='finished'?score:qDone>0?score+' so far':'—'}</span>
+        </div>
+        <div class="prog-bar"><div class="prog-bar-fill" style="background:${barColor};width:${pct}%;"></div></div>
+      </div>
+      ${statusEl}
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:24px;color:#aaa;font-size:13px;">No students have joined yet.</div>';
+
+  // Leaderboard
+  const lb = document.getElementById('lbBody');
+  lb.innerHTML = participants.map((p, i) => {
+    const name = p.exam_users?.display_name || p.exam_users?.first_name || '—';
+    const rank = i + 1;
+    const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
+    const score = p.score !== null ? `<span style="color:#0F6E56;font-weight:600;">${p.score}%</span>` : `<span style="color:#aaa;">—</span>`;
+    const time = p.time_seconds ? formatTime(p.time_seconds) : '—';
+    return `<tr><td>${medal}</td><td><strong>${name}</strong></td><td>${score}</td><td style="color:#888;">${time}</td></tr>`;
+  }).join('') || '<tr><td colspan="4" class="empty-state">No students yet</td></tr>';
+}
+
+function formatTime(seconds) {
+  if (!seconds) return '—';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+async function endQuiz() {
+  if (!activeQuizCode) return;
+  clearInterval(liveInterval);
+  liveInterval = null;
+
+  await db.from('exam_quiz_sessions').update({ status: 'finished', ended_at: new Date().toISOString() }).eq('code', activeQuizCode);
+
+  activeQuizCode = null;
+  selectedQuiz = null;
+  document.getElementById('activeQuizPanel').classList.remove('show');
+  document.getElementById('quizSetupPanel').style.display = 'block';
+  document.querySelectorAll('.quiz-opt').forEach(o => o.classList.remove('selected'));
+  document.getElementById('startQuizBtn').disabled = true;
+
+  showToast('Quiz ended — results saved');
+  await loadQuizHistory();
+}
+
+async function loadQuizHistory() {
+  const { data } = await db
+    .from('exam_quiz_sessions')
+    .select('*')
+    .eq('teacher_id', currentTeacherId)
+    .eq('status', 'finished')
+    .order('ended_at', { ascending: false })
+    .limit(10);
+
+  const body = document.getElementById('quizHistoryBody');
+  if (!data || data.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" class="empty-state"><i class="ti ti-history"></i>No quiz history yet</td></tr>';
+    return;
+  }
+  body.innerHTML = data.map(q => `
+    <tr>
+      <td style="color:#888;">${new Date(q.ended_at).toLocaleDateString()}</td>
+      <td><strong>${q.quiz_label||q.quiz_id}</strong></td>
+      <td>${q.participant_count||'—'}</td>
+      <td>${q.top_score!=null?q.top_score+'%':'—'}</td>
+      <td>${q.winner_name||'—'}</td>
+    </tr>`).join('');
+}
+
+function switchAqTab(tab, el) {
+  document.querySelectorAll('.aq-tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('aqProgressTab').style.display   = tab === 'progress'    ? '' : 'none';
+  document.getElementById('aqLeaderboardTab').style.display = tab === 'leaderboard' ? '' : 'none';
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────
+let modalCallback = null;
+function showModal(icon, title, sub, cb) {
+  document.getElementById('modalIcon').textContent  = icon;
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalSub').textContent   = sub;
+  modalCallback = cb;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+document.getElementById('modalConfirm').addEventListener('click', async () => {
+  closeModal();
+  if (modalCallback) await modalCallback();
+});
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>
