@@ -579,8 +579,8 @@ async function loadStudents() {
         <td style="color:#888;">@${s.username || '—'}</td>
         <td style="color:#888;">${timeAgo(s.created_at)}</td>
         <td><div class="action-row">
-          <button class="btn-xs approve" onclick="approveStudent('${s.id}')"><i class="ti ti-check" style="font-size:12px;"></i> Approve</button>
-          <button class="btn-xs reject"  onclick="rejectStudent('${s.id}','${s.display_name||s.first_name}')"><i class="ti ti-x" style="font-size:12px;"></i> Reject</button>
+          <button class="btn-xs approve" data-id="${s.id}"><i class="ti ti-check" style="font-size:12px;"></i> Approve</button>
+          <button class="btn-xs reject"  data-id="${s.id}" data-name="${(s.display_name||s.first_name||'').replace(/"/g,'&quot;')}"><i class="ti ti-x" style="font-size:12px;"></i> Reject</button>
         </div></td>
       </tr>`).join('');
   }
@@ -595,7 +595,7 @@ async function loadStudents() {
         <td><strong>${s.display_name || s.first_name || '—'}</strong></td>
         <td style="color:#888;">@${s.username || '—'}</td>
         <td style="color:#888;">${timeAgo(s.last_seen)}</td>
-        <td><button class="btn-xs remove" onclick="confirmRemoveOne('${s.id}','${s.display_name||s.first_name}')">
+        <td><button class="btn-xs remove" data-id="${s.id}" data-name="${(s.display_name||s.first_name||'').replace(/"/g,'&quot;')}">
           <i class="ti ti-trash" style="font-size:12px;"></i> Remove
         </button></td>
       </tr>`).join('');
@@ -609,27 +609,38 @@ async function approveStudent(id) {
 }
 
 async function rejectStudent(id, name) {
-  showModal('❌', `Reject ${name}?`, 'This will delete their account permanently.', async () => {
-    await db.from('exam_users').delete().eq('id', id);
-    showToast('Student removed');
+  showModal('❌', `Reject ${name}?`, 'They will be removed and will need to register again.', async () => {
+    await db.from('exam_users').update({ approved: false, teacher_id: null, teacher_name: null, display_name: null }).eq('id', id);
+    showToast('Student rejected');
     await loadStudents();
   });
 }
 
 async function confirmRemoveOne(id, name) {
-  showModal('🗑️', `Remove ${name}?`, 'They will need to register again to access the app.', async () => {
-    await db.from('exam_users').delete().eq('id', id);
+  showModal('🗑️', `Remove ${name}?`, 'They will lose access and need teacher approval again.', async () => {
+    const { error } = await db.from('exam_users').update({ approved: false }).eq('id', id);
+    if (error) { showToast('Error: ' + error.message); console.error(error); return; }
     showToast('Student removed');
     await loadStudents();
   });
 }
 
+// Event delegation — handles dynamically rendered buttons safely
+document.addEventListener('click', e => {
+  const approveBtn = e.target.closest('button.approve[data-id]');
+  const rejectBtn  = e.target.closest('button.reject[data-id]');
+  const removeBtn  = e.target.closest('button.remove[data-id]');
+  if (approveBtn) approveStudent(approveBtn.dataset.id);
+  if (rejectBtn)  rejectStudent(rejectBtn.dataset.id, rejectBtn.dataset.name);
+  if (removeBtn)  confirmRemoveOne(removeBtn.dataset.id, removeBtn.dataset.name);
+});
+
 async function confirmRemoveAll() {
   const approved = students.filter(s => s.approved);
   if (approved.length === 0) { showToast('No students to remove'); return; }
-  showModal('⚠️', 'Remove all students?', `This will remove all ${approved.length} approved students permanently.`, async () => {
+  showModal('⚠️', 'Remove all students?', `This will remove access for all ${approved.length} approved students.`, async () => {
     const ids = approved.map(s => s.id);
-    await db.from('exam_users').delete().in('id', ids);
+    await db.from('exam_users').update({ approved: false }).in('id', ids);
     showToast('All students removed');
     await loadStudents();
   });
