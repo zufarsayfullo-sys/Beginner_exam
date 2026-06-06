@@ -296,8 +296,8 @@
     document.getElementById('joinBtn').innerHTML='<span style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;"></span>';
 
     try{
-      // Check session exists and is active
-      const{data:session,error}=await db.from('exam_quiz_sessions').select('*').eq('code',code).eq('status','active').single();
+      // Check session exists and is active or waiting
+      const{data:session,error}=await db.from('exam_quiz_sessions').select('*').eq('code',code).in('status',['active','waiting']).single();
       if(error||!session){
         document.getElementById('codeInput').classList.add('error');
         document.getElementById('errorMsg').classList.add('show');
@@ -327,16 +327,19 @@
     }
   }
 
-  // ── WAITING — poll for quiz start / session still active ───────
+  // ── WAITING — poll for teacher to press Start ─────────────────
   function pollWaiting(){
     updateWaitingPlayers();
     pollInterval=setInterval(async()=>{
       const{data:session}=await db.from('exam_quiz_sessions').select('status').eq('code',sessionCode).single();
+      if(session?.status==='active'){
+        clearInterval(pollInterval);
+        startQuizQuestions();
+        return;
+      }
       if(session?.status==='finished'){ clearInterval(pollInterval); showScreen('joinScreen'); return; }
       updateWaitingPlayers();
-    },3000);
-    // Auto-start quiz after joining (teacher already started it)
-    setTimeout(()=>{ clearInterval(pollInterval); startQuizQuestions(); },2000);
+    },2000);
   }
 
   async function updateWaitingPlayers(){
