@@ -394,8 +394,6 @@
       container.appendChild(div);
     });
 
-    // Update live progress
-    db.from('exam_quiz_participants').update({questions_done:current}).eq('session_code',sessionCode).eq('user_id',userId);
     document.getElementById('quizScroll').scrollTo({top:0,behavior:'smooth'});
   }
 
@@ -419,7 +417,7 @@
 
     // Update live progress — questions_done, correct_count, live score
     const liveScore=Math.round((correctCount/(current+1))*100);
-    db.from('exam_quiz_participants').update({
+    await db.from('exam_quiz_participants').update({
       questions_done: current+1,
       correct_count:  correctCount,
       score:          liveScore
@@ -441,10 +439,11 @@
     const finalScore=Math.round((correctCount/10)*100);
     const timeSecs=Math.round((Date.now()-startTime)/1000);
 
-    // Save final result
+    // Save final result including correct_count
     await db.from('exam_quiz_participants').update({
       status:'finished', score:finalScore,
-      questions_done:10, time_seconds:timeSecs
+      questions_done:10, correct_count:correctCount,
+      time_seconds:timeSecs
     }).eq('session_code',sessionCode).eq('user_id',userId);
 
     // Show finished screen
