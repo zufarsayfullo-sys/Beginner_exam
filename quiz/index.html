@@ -410,9 +410,13 @@
     document.getElementById('fbIcon').textContent=isCorrect?'✅':'❌';
     document.getElementById('fbText').innerHTML=q.explanation;
 
-    // Update score live
-    const currentScore=Math.round((correctCount/(current+1))*100);
-    db.from('exam_quiz_participants').update({questions_done:current+1,score:currentScore}).eq('session_code',sessionCode).eq('user_id',userId);
+    // Update live progress — questions_done, correct_count, live score
+    const liveScore=Math.round((correctCount/(current+1))*100);
+    db.from('exam_quiz_participants').update({
+      questions_done: current+1,
+      correct_count:  correctCount,
+      score:          liveScore
+    }).eq('session_code',sessionCode).eq('user_id',userId);
 
     const nextBtn=document.getElementById('nextBtn');
     nextBtn.classList.add('show');
