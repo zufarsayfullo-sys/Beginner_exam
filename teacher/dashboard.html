@@ -220,13 +220,20 @@
     .prog-bar-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
     .prog-bar-q { font-size: 11px; color: #888; }
     .prog-bar-pct { font-size: 11px; font-weight: 600; }
-    .prog-bar { height: 7px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+    .prog-bar { height: 7px; background: #E8E6F8; border-radius: 4px; overflow: hidden; display: flex; gap: 1px; }
     .prog-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .seg { height: 100%; flex-shrink: 0; transition: width 0.4s ease; }
+    .seg.correct { background: var(--teal-main); }
+    .seg.wrong   { background: var(--coral-main); }
+    .seg.empty   { background: #E8E6F8; }
     .prog-status { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; min-width: 70px; text-align: center; }
     .ps-done     { background: var(--teal-pale); color: #085041; }
     .ps-progress { background: var(--purple-pale); color: #3C3489; }
     .ps-waiting  { background: var(--bg); color: #888; border: 0.5px solid #E0DEFA; }
     .ps-rank     { background: var(--amber-pale); color: #633806; }
+    .score-chips { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .chip-correct { color: var(--teal-main); }
+    .chip-wrong   { color: var(--coral-main); }
 
     /* END QUIZ BTN */
     .end-quiz-btn { background: var(--coral-main); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
@@ -769,22 +776,32 @@ async function loadLiveProgress() {
   document.getElementById('aqWaiting').textContent    = waiting.length;
   document.getElementById('aqJoined').textContent     = participants.length;
 
+  const total = 10;
+  const segW = (100 / total).toFixed(2) + '%';
+
   // Progress table
   const progTable = document.getElementById('progressTable');
   progTable.innerHTML = participants.map((p, i) => {
-    const name = p.exam_users?.display_name || p.exam_users?.first_name || '—';
+    const name  = p.exam_users?.display_name || p.exam_users?.first_name || '—';
     const inits = initials(name);
     const colors = ['#EEEDFE/#534AB7','#E1F5EE/#0F6E56','#FAECE7/#993C1D','#FAEEDA/#BA7517'];
     const [bg, fg] = colors[i % colors.length].split('/');
-    const qDone = p.questions_done || 0;
-    const total = p.questions_total || 10;
-    const pct = total > 0 ? Math.round((qDone / total) * 100) : 0;
-    const score = p.score !== null ? p.score + '%' : '—';
-    const barColor = p.status === 'finished' ? '#0F6E56' : '#534AB7';
+    const qDone     = p.questions_done || 0;
+    const correctN  = p.correct_count  || 0;
+    const wrongN    = qDone - correctN;
+    const score     = p.score !== null ? p.score + '%' : '—';
+
+    // Build segmented bar: green = correct, red = wrong, grey = not done
+    let segs = '';
+    for (let s = 0; s < total; s++) {
+      if (s < correctN)       segs += `<div class="seg correct" style="width:${segW};"></div>`;
+      else if (s < qDone)     segs += `<div class="seg wrong"   style="width:${segW};"></div>`;
+      else                    segs += `<div class="seg empty"   style="width:${segW};"></div>`;
+    }
 
     let statusEl;
     if (p.status === 'finished') {
-      const rank = finished.findIndex(f => f.id === p.id) + 1;
+      const rank  = finished.findIndex(f => f.id === p.id) + 1;
       const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
       statusEl = `<div class="prog-status ps-rank">${medal} ${rank}${rank===1?'st':rank===2?'nd':rank===3?'rd':'th'} · ${formatTime(p.time_seconds)}</div>`;
     } else if (p.status === 'in_progress') {
@@ -793,29 +810,36 @@ async function loadLiveProgress() {
       statusEl = `<div class="prog-status ps-waiting">Joined</div>`;
     }
 
+    const scoreDisplay = p.status === 'waiting' ? '—'
+      : `<span class="chip-correct">✓${correctN}</span> <span class="chip-wrong">✗${wrongN}</span>${p.status==='finished'?' · <strong>'+score+'</strong>':''}`;
+
     return `<div class="prog-row-item">
       <div class="prog-av" style="background:${bg};color:${fg};">${inits}</div>
       <div class="prog-name">${name}</div>
       <div class="prog-bar-wrap">
         <div class="prog-bar-top">
           <span class="prog-bar-q">${qDone} / ${total} questions</span>
-          <span class="prog-bar-pct" style="color:${barColor};">${p.status==='finished'?score:qDone>0?score+' so far':'—'}</span>
+          <span class="score-chips">${scoreDisplay}</span>
         </div>
-        <div class="prog-bar"><div class="prog-bar-fill" style="background:${barColor};width:${pct}%;"></div></div>
+        <div class="prog-bar">${segs}</div>
       </div>
       ${statusEl}
     </div>`;
   }).join('') || '<div style="text-align:center;padding:24px;color:#aaa;font-size:13px;">No students have joined yet.</div>';
 
-  // Leaderboard
+  // Leaderboard — with color coded scores
   const lb = document.getElementById('lbBody');
   lb.innerHTML = participants.map((p, i) => {
-    const name = p.exam_users?.display_name || p.exam_users?.first_name || '—';
-    const rank = i + 1;
+    const name  = p.exam_users?.display_name || p.exam_users?.first_name || '—';
+    const rank  = i + 1;
     const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
-    const score = p.score !== null ? `<span style="color:#0F6E56;font-weight:600;">${p.score}%</span>` : `<span style="color:#aaa;">—</span>`;
+    const s     = p.score;
+    const scoreColor = s===null?'#aaa':s>=80?'#0F6E56':s>=60?'#BA7517':'#993C1D';
+    const scoreHtml = s !== null
+      ? `<span style="color:${scoreColor};font-weight:700;">${s}%</span>`
+      : `<span style="color:#aaa;">—</span>`;
     const time = p.time_seconds ? formatTime(p.time_seconds) : '—';
-    return `<tr><td>${medal}</td><td><strong>${name}</strong></td><td>${score}</td><td style="color:#888;">${time}</td></tr>`;
+    return `<tr><td>${medal}</td><td><strong>${name}</strong></td><td>${scoreHtml}</td><td style="color:#888;">${time}</td></tr>`;
   }).join('') || '<tr><td colspan="4" class="empty-state">No students yet</td></tr>';
 }
 
