@@ -374,21 +374,30 @@
           <div class="aq-head">
             <div class="aq-title"><i class="ti ti-tournament"></i> <span id="aqTitle">—</span></div>
             <div style="display:flex;align-items:center;gap:10px;">
-              <div class="aq-live"><div class="aq-live-dot"></div> Live</div>
-              <button class="end-quiz-btn" onclick="endQuiz()"><i class="ti ti-player-stop"></i> End quiz</button>
+              <div class="aq-live" id="aqLiveBadge" style="display:none;"><div class="aq-live-dot"></div> Live</div>
+              <button class="t-btn primary" id="startQuizLiveBtn" onclick="startQuizLive()" style="display:none;"><i class="ti ti-player-play"></i> Start quiz</button>
+              <button class="end-quiz-btn" id="endQuizBtn" onclick="endQuiz()" style="display:none;"><i class="ti ti-player-stop"></i> End quiz</button>
             </div>
           </div>
           <div class="aq-body">
             <div class="code-display">
               <div class="code-lbl">Class code — show this to students</div>
               <div class="code-val" id="aqCode">—</div>
-              <div class="code-sub">Students enter this in their Telegram app to join</div>
+              <div class="code-sub" id="aqCodeSub">Students enter this in their Telegram app to join · <span id="aqJoinedCount" style="font-weight:600;color:var(--purple-main);">0 joined</span></div>
             </div>
-            <div class="aq-tabs">
+            <!-- WAITING STATE -->
+            <div id="aqWaitingState" style="background:var(--amber-pale);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+              <i class="ti ti-clock" style="font-size:20px;color:var(--amber-main);flex-shrink:0;"></i>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:#633806;">Waiting for students to join</div>
+                <div style="font-size:12px;color:#854F0B;margin-top:2px;">When everyone is ready, click <strong>Start quiz</strong> above.</div>
+              </div>
+            </div>
+            <div class="aq-tabs" id="aqTabs" style="display:none;">
               <div class="aq-tab on" onclick="switchAqTab('progress',this)">Live progress</div>
               <div class="aq-tab" onclick="switchAqTab('leaderboard',this)">Leaderboard</div>
             </div>
-            <div class="aq-summary">
+            <div class="aq-summary" id="aqSummary" style="display:none;">
               <div class="aq-sum-card"><div class="aq-sum-val teal" id="aqFinished">0</div><div class="aq-sum-lbl">Finished</div></div>
               <div class="aq-sum-card"><div class="aq-sum-val purple" id="aqInProgress">0</div><div class="aq-sum-lbl">In progress</div></div>
               <div class="aq-sum-card"><div class="aq-sum-val" style="color:#888;" id="aqWaiting">0</div><div class="aq-sum-lbl">Waiting</div></div>
@@ -742,19 +751,51 @@ async function startQuiz() {
   activeQuizCode = code;
   const quizLabel = QUIZZES.find(q => q.id === selectedQuiz)?.label || selectedQuiz;
 
-  // Insert active quiz session
+  // Insert session with status 'waiting' — students can join but quiz hasn't started
   await db.from('exam_quiz_sessions').insert({
     code, quiz_id: selectedQuiz, teacher_id: currentTeacherId,
-    quiz_label: quizLabel, status: 'active'
+    quiz_label: quizLabel, status: 'waiting'
   });
 
-  document.getElementById('aqTitle').textContent = quizLabel;
-  document.getElementById('aqCode').textContent = code;
+  document.getElementById('aqTitle').textContent        = quizLabel;
+  document.getElementById('aqCode').textContent         = code;
   document.getElementById('activeQuizPanel').classList.add('show');
   document.getElementById('quizSetupPanel').style.display = 'none';
 
+  // Show waiting state — hide live controls
+  document.getElementById('startQuizLiveBtn').style.display = '';
+  document.getElementById('endQuizBtn').style.display       = 'none';
+  document.getElementById('aqLiveBadge').style.display      = 'none';
+  document.getElementById('aqWaitingState').style.display   = '';
+  document.getElementById('aqTabs').style.display           = 'none';
+  document.getElementById('aqSummary').style.display        = 'none';
+
+  // Poll joined count while waiting
+  liveInterval = setInterval(async () => {
+    const { count } = await db.from('exam_quiz_participants')
+      .select('id', { count: 'exact' })
+      .eq('session_code', code);
+    document.getElementById('aqJoinedCount').textContent = (count || 0) + ' joined';
+  }, 2000);
+}
+
+async function startQuizLive() {
+  if (!activeQuizCode) return;
+  clearInterval(liveInterval);
+
+  // Update session to active — students' apps will start the quiz
+  await db.from('exam_quiz_sessions').update({ status: 'active' }).eq('code', activeQuizCode);
+
+  // Show live state
+  document.getElementById('startQuizLiveBtn').style.display = 'none';
+  document.getElementById('endQuizBtn').style.display       = '';
+  document.getElementById('aqLiveBadge').style.display      = '';
+  document.getElementById('aqWaitingState').style.display   = 'none';
+  document.getElementById('aqTabs').style.display           = '';
+  document.getElementById('aqSummary').style.display        = '';
+
   // Start polling live progress
-  liveInterval = setInterval(loadLiveProgress, 3000);
+  liveInterval = setInterval(loadLiveProgress, 2000);
   loadLiveProgress();
 }
 
