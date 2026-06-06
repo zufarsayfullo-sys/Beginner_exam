@@ -297,7 +297,11 @@
 
     try{
       // Check session exists and is active or waiting
-      const{data:session,error}=await db.from('exam_quiz_sessions').select('*').eq('code',code).in('status',['active','waiting']).single();
+      const{data:session,error}=await db.from('exam_quiz_sessions')
+        .select('*')
+        .eq('code',code)
+        .neq('status','finished')
+        .single();
       if(error||!session){
         document.getElementById('codeInput').classList.add('error');
         document.getElementById('errorMsg').classList.add('show');
