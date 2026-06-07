@@ -134,7 +134,7 @@
     <div class="error-msg" id="errorMsg">Code not found or quiz has ended.</div>
     <div class="code-label">Class code</div>
     <input class="code-input" id="codeInput" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
-    <button class="join-btn" id="joinBtn" onclick="joinQuiz()" disabled>
+    <button class="join-btn" id="joinBtn" onclick="joinQuiz()">
       <i class="ti ti-arrow-right"></i> Join quiz
     </button>
   </div>
@@ -281,9 +281,13 @@
   // ── JOIN ───────────────────────────────────────────────────────
   document.getElementById('codeInput').addEventListener('input',function(){
     this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
-    document.getElementById('joinBtn').disabled=this.value.length<4;
+    document.getElementById('joinBtn').disabled=this.value.length<1;
     this.classList.remove('error');
     document.getElementById('errorMsg').classList.remove('show');
+  });
+
+  document.getElementById('codeInput').addEventListener('keyup',function(){
+    document.getElementById('joinBtn').disabled=this.value.trim().length<1;
   });
 
   document.getElementById('codeInput').addEventListener('keydown',function(e){
@@ -292,6 +296,7 @@
 
   async function joinQuiz(){
     const code=document.getElementById('codeInput').value.trim().toUpperCase();
+    if(!code){ document.getElementById('errorMsg').textContent='Please enter the class code.'; document.getElementById('errorMsg').classList.add('show'); return; }
     document.getElementById('joinBtn').disabled=true;
     document.getElementById('joinBtn').innerHTML='<span style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;"></span>';
 
@@ -397,7 +402,7 @@
     document.getElementById('quizScroll').scrollTo({top:0,behavior:'smooth'});
   }
 
-  function selectAnswer(chosen,q){
+  async function selectAnswer(chosen,q){
     if(answered)return;
     answered=true;
     const isCorrect=chosen===q.correct;
