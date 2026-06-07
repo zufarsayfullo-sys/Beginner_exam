@@ -340,10 +340,26 @@
   function pollWaiting(){
     updateWaitingPlayers();
     pollInterval=setInterval(async()=>{
-      const{data:session}=await db.from('exam_quiz_sessions').select('status').eq('code',sessionCode).single();
+      const{data:session}=await db.from('exam_quiz_sessions').select('status,quiz_id').eq('code',sessionCode).single();
       if(session?.status==='active'){
         clearInterval(pollInterval);
-        startQuizQuestions();
+        // Redirect to the actual quiz file with classroom params
+        const quizFileMap={
+          'grammar-1':'../grammar/quiz1.html',
+          'grammar-2':'../grammar/quiz2.html',
+          'grammar-3':'../grammar/quiz3.html',
+          'grammar-4':'../grammar/quiz4.html',
+          'grammar-5':'../grammar/quiz5.html',
+          'grammar-6':'../grammar/quiz6.html',
+          'grammar-7':'../grammar/quiz7.html',
+          'grammar-8':'../grammar/quiz8.html',
+        };
+        const file = quizFileMap[session.quiz_id];
+        if(file){
+          window.location.href = file + '?session=' + sessionCode + '&classroom=true';
+        } else {
+          startQuizQuestions();
+        }
         return;
       }
       if(session?.status==='finished'){ clearInterval(pollInterval); showScreen('joinScreen'); return; }
