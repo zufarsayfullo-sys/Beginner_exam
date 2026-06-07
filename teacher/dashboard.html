@@ -181,7 +181,8 @@
     .quiz-setup-title { font-size: 14px; font-weight: 600; color: var(--purple-dark); margin-bottom: 14px; }
     .quiz-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
     .quiz-opt { border: 1.5px solid #E0DEFA; border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.15s; }
-    .quiz-opt:hover { border-color: var(--purple-light); background: var(--purple-pale); }
+    .quiz-opt.nomc { opacity: 0.4; cursor: not-allowed; }
+    .quiz-opt.nomc:hover { border-color: #E0DEFA; background: #fff; }
     .quiz-opt.selected { border-color: var(--purple-main); background: var(--purple-pale); }
     .quiz-opt-name { font-size: 12px; font-weight: 600; color: var(--purple-dark); margin-bottom: 2px; }
     .quiz-opt-sub { font-size: 10px; color: #888; }
@@ -463,14 +464,14 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TEACHER_PINS = { mr_zufar: '2255', mr_farrux: '7777' };
 
 const QUIZZES = [
-  {id:'grammar-1',  label:'Grammar 1',   sub:'There is/are'},
-  {id:'grammar-2',  label:'Grammar 2',   sub:'Can / Can\'t'},
-  {id:'grammar-3',  label:'Grammar 3',   sub:'Word Order'},
-  {id:'grammar-4',  label:'Grammar 4',   sub:'Past Simple'},
-  {id:'grammar-5',  label:'Grammar 5',   sub:'Questions'},
-  {id:'grammar-6',  label:'Grammar 6',   sub:'Past Simple II'},
-  {id:'grammar-7',  label:'Grammar 7',   sub:'Word Order II'},
-  {id:'grammar-8',  label:'Grammar 8',   sub:'Going To'},
+  {id:'grammar-1', label:'Grammar 1', sub:'There is/are'},
+  {id:'grammar-2', label:'Grammar 2', sub:'Can / Can\'t'},
+  {id:'grammar-3', label:'Grammar 3', sub:'Word Order'},
+  {id:'grammar-4', label:'Grammar 4', sub:'Past Simple'},
+  {id:'grammar-5', label:'Grammar 5', sub:'Questions'},
+  {id:'grammar-6', label:'Grammar 6', sub:'Past Simple II'},
+  {id:'grammar-7', label:'Grammar 7', sub:'Word Order II'},
+  {id:'grammar-8', label:'Grammar 8', sub:'Going To'},
 ];
 
 let currentTeacher = null;
