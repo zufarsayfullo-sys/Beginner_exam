@@ -366,9 +366,7 @@
       showScreen('joinScreen');
       return;
     }
-    // Only use multiple choice questions (skip gap fill / rewrite)
-    const mcOnly = bank.filter(q => Array.isArray(q.options) && q.options.length >= 2);
-    questions = shuffle(mcOnly.length >= 10 ? mcOnly : bank).slice(0,10);
+    questions = shuffle(bank).slice(0,10);
     current=0; correctCount=0; answered=false;
     startTime=Date.now();
 
@@ -391,36 +389,152 @@
 
     const container=document.getElementById('optionsEl');
     container.innerHTML='';
-    shuffle(q.options).forEach(opt=>{
-      const div=document.createElement('div');
-      div.className='opt';
-      div.innerHTML=`<div class="opt-circle"></div><span class="opt-text">${opt}</span>`;
-      div.addEventListener('click',()=>selectAnswer(opt,q));
-      container.appendChild(div);
-    });
+
+    if(Array.isArray(q.options) && q.options.length >= 2 && !Array.isArray(q.accepted)){
+      // ── MULTIPLE CHOICE ──────────────────────────────────────────
+      document.getElementById('qcontext').textContent='Choose the correct option.';
+      shuffle(q.options).forEach(opt=>{
+        const div=document.createElement('div');
+        div.className='opt';
+        div.innerHTML=`<div class="opt-circle"></div><span class="opt-text">${opt}</span>`;
+        div.addEventListener('click',()=>selectAnswerMC(opt,q));
+        container.appendChild(div);
+      });
+    } else {
+      // ── GAP FILL / WORD ORDER / REWRITE ──────────────────────────
+      const isWordOrder = Array.isArray(q.words);
+      document.getElementById('qcontext').textContent = isWordOrder
+        ? 'Tap the words in the correct order.'
+        : 'Type the correct answer.';
+
+      if(isWordOrder){
+        // Word order — show chips
+        renderWordOrderInput(q, container);
+      } else {
+        // Gap fill / rewrite — show text input
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+          <input id="liveInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+            placeholder="Type your answer..."
+            style="width:100%;background:#fff;border:2px solid #CECBF6;border-radius:14px;padding:14px 16px;font-size:15px;font-family:'DM Sans',sans-serif;color:#26215C;outline:none;margin-bottom:10px;"
+          />
+          <button onclick="checkGapFill()" style="width:100%;background:#534AB7;color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <i class="ti ti-check" style="font-size:17px;"></i> Check answer
+          </button>`;
+        container.appendChild(wrap);
+        setTimeout(()=>document.getElementById('liveInput')?.focus(),300);
+        document.getElementById('liveInput')?.addEventListener('keydown', e=>{
+          if(e.key==='Enter') checkGapFill();
+        });
+      }
+    }
 
     document.getElementById('quizScroll').scrollTo({top:0,behavior:'smooth'});
   }
 
-  async function selectAnswer(chosen,q){
-    if(answered)return;
-    answered=true;
-    const isCorrect=chosen===q.correct;
-    if(isCorrect)correctCount++;
+  // ── WORD ORDER INPUT ──────────────────────────────────────────────
+  let placedWords=[], chipStates=[];
 
+  function renderWordOrderInput(q, container){
+    chipStates = shuffle([...q.words]).map((w,i)=>({word:w,index:i,used:false}));
+    placedWords = [];
+    container.innerHTML = `
+      <div id="chipBank" style="background:#fff;border-radius:10px;padding:12px;border:0.5px solid #CECBF6;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:7px;"></div>
+      <div id="answerArea" style="background:#fff;border:2px solid #CECBF6;border-radius:14px;padding:12px;min-height:48px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <button onclick="clearWordOrder()" style="font-size:12px;color:#aaa;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="ti ti-backspace"></i> Clear</button>
+        <button onclick="checkWordOrder()" style="background:#534AB7;color:#fff;border:none;border-radius:10px;padding:9px 20px;font-size:14px;font-weight:600;cursor:pointer;">Check</button>
+      </div>`;
+    renderChipsWO();
+    renderAreaWO();
+  }
+
+  function renderChipsWO(){
+    const bank = document.getElementById('chipBank');
+    if(!bank) return;
+    bank.innerHTML = '';
+    chipStates.forEach((c,i)=>{
+      const d = document.createElement('div');
+      d.textContent = c.word;
+      d.style.cssText = `background:${c.used?'#f0f0f0':'#EEEDFE'};color:${c.used?'#ccc':'#26215C'};font-size:14px;font-weight:500;padding:6px 12px;border-radius:20px;border:1.5px solid ${c.used?'#e0e0e0':'#CECBF6'};cursor:${c.used?'default':'pointer'};user-select:none;`;
+      if(!c.used) d.addEventListener('click',()=>placeChipWO(i));
+      bank.appendChild(d);
+    });
+  }
+
+  function renderAreaWO(){
+    const area = document.getElementById('answerArea');
+    if(!area) return;
+    area.innerHTML = placedWords.length === 0
+      ? '<span style="font-size:13px;color:#bbb;font-style:italic;">Tap words above...</span>'
+      : '';
+    placedWords.forEach((_,pos)=>{
+      const d = document.createElement('div');
+      d.textContent = placedWords[pos].word;
+      d.style.cssText = 'background:#534AB7;color:#fff;font-size:14px;font-weight:500;padding:6px 12px;border-radius:20px;cursor:pointer;';
+      d.addEventListener('click',()=>removeChipWO(pos));
+      area.appendChild(d);
+    });
+  }
+
+  function placeChipWO(i){ if(chipStates[i].used)return; chipStates[i].used=true; placedWords.push(chipStates[i]); renderChipsWO(); renderAreaWO(); }
+  function removeChipWO(pos){ const r=placedWords.splice(pos,1)[0]; chipStates[r.index].used=false; renderChipsWO(); renderAreaWO(); }
+  function clearWordOrder(){ placedWords=[]; chipStates.forEach(c=>c.used=false); renderChipsWO(); renderAreaWO(); }
+
+  function checkWordOrder(){
+    const q=questions[current];
+    const built=placedWords.map(c=>c.word).join(' ');
+    const correct=q.accepted.some(a=>normalizeAns(a)===normalizeAns(built));
+    processAnswer(correct, q, built);
+  }
+
+  function checkGapFill(){
+    const q=questions[current];
+    const input=document.getElementById('liveInput');
+    if(!input)return;
+    const val=input.value;
+    const correct = Array.isArray(q.accepted)
+      ? q.accepted.some(a=>normalizeAns(a)===normalizeAns(val))
+      : normalizeAns(val)===normalizeAns(q.correct||'');
+    processAnswer(correct, q, val);
+  }
+
+  function normalizeAns(s){ return String(s).trim().toLowerCase().replace(/['']/g,"'").replace(/\s+/g,' ').replace(/\.$/,''); }
+
+  async function selectAnswerMC(chosen,q){
+    if(answered)return;
+    const isCorrect=chosen===q.correct;
+    processAnswer(isCorrect, q, chosen);
     document.querySelectorAll('.opt').forEach(el=>{
       const text=el.querySelector('.opt-text').textContent;
       if(text===q.correct){el.classList.add('correct');el.querySelector('.opt-circle').innerHTML='<i class="ti ti-check" style="font-size:12px;"></i>';}
       else if(text===chosen&&!isCorrect){el.classList.add('wrong');el.querySelector('.opt-circle').innerHTML='<i class="ti ti-x" style="font-size:12px;"></i>';}
       else{el.classList.add('disabled');}
     });
+  }
+
+  async function processAnswer(isCorrect, q, chosen){
+    if(answered)return;
+    answered=true;
+    if(isCorrect)correctCount++;
 
     const fb=document.getElementById('feedbackBox');
     fb.className='feedback-box show '+(isCorrect?'correct-fb':'wrong-fb');
     document.getElementById('fbIcon').textContent=isCorrect?'✅':'❌';
-    document.getElementById('fbText').innerHTML=q.explanation;
+    const correctAns = Array.isArray(q.accepted) ? q.accepted[0] : q.correct;
+    document.getElementById('fbText').innerHTML = isCorrect
+      ? (q.explanation||'Correct!')
+      : `The correct answer is <strong>${correctAns}</strong>${q.explanation?'.<br><br>'+q.explanation:''}`;
 
-    // Update live progress — questions_done, correct_count, live score
+    // Style gap fill input if visible
+    const liveInput=document.getElementById('liveInput');
+    if(liveInput){ liveInput.style.borderColor=isCorrect?'#0F6E56':'#993C1D'; liveInput.style.background=isCorrect?'#E1F5EE':'#FAECE7'; liveInput.readOnly=true; }
+
+    // Style word order area if visible
+    const answerArea=document.getElementById('answerArea');
+    if(answerArea) answerArea.style.borderColor=isCorrect?'#0F6E56':'#993C1D';
+
+    // Save live progress to Supabase
     const liveScore=Math.round((correctCount/(current+1))*100);
     await db.from('exam_quiz_participants').update({
       questions_done: current+1,
