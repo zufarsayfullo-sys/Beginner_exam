@@ -514,8 +514,14 @@ async function doLogin() {
     }, 2000);
     return;
   }
-  currentTeacherId = selectedTeacherId;
-  currentTeacher = selectedTeacherId === 'mr_zufar' ? 'Mr Zufar' : 'Mr Farrux';
+  // Save session
+  sessionStorage.setItem('teacher_id', selectedTeacherId);
+  await enterDashboard(selectedTeacherId);
+}
+
+async function enterDashboard(teacherId) {
+  currentTeacherId = teacherId;
+  currentTeacher = teacherId === 'mr_zufar' ? 'Mr Zufar' : 'Mr Farrux';
   document.getElementById('sbTeacherName').textContent = currentTeacher;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').classList.add('show');
@@ -525,6 +531,7 @@ async function doLogin() {
 }
 
 function doLogout() {
+  sessionStorage.removeItem('teacher_id');
   currentTeacher = null; currentTeacherId = null;
   if (liveInterval) clearInterval(liveInterval);
   document.getElementById('app').classList.remove('show');
@@ -535,6 +542,15 @@ function doLogout() {
   document.querySelectorAll('.t-check').forEach(c => c.innerHTML = '');
   updateLoginBtn();
 }
+
+// Auto-login on page load if session exists
+(async () => {
+  const saved = sessionStorage.getItem('teacher_id');
+  if (saved && TEACHER_PINS[saved]) {
+    selectedTeacherId = saved;
+    await enterDashboard(saved);
+  }
+})();
 
 // ── NAVIGATION ────────────────────────────────────────────────────
 function navTo(page) {
