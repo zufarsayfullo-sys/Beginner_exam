@@ -342,6 +342,28 @@
   function retryQuiz(){attemptNumber++;startQuiz();}
   async function init(){await loadUser();startQuiz();}
   init();
+
+  // ── CLASSROOM MODE ────────────────────────────────────────────
+  (function(){
+    const params=new URLSearchParams(window.location.search);
+    const _session=params.get('session');
+    const _classroom=params.get('classroom')==='true';
+    if(!_classroom||!_session)return;
+    const _db2=window.supabase.createClient('https://wfpphviaosfedotbivtb.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ');
+    let _uid=null,_start=Date.now();
+    async function _getUid(){if(_uid)return _uid;const tg=window.Telegram?.WebApp?.initDataUnsafe?.user;const tid=tg?String(tg.id):'dev_user';const{data}=await _db2.from('exam_users').select('id').eq('telegram_id',tid).single();_uid=data?.id;return _uid;}
+    async function _save(done,correct,status){const uid=await _getUid();if(!uid)return;const score=done>0?Math.round((correct/done)*100):0;const t=status==='finished'?Math.round((Date.now()-_start)/1000):null;await _db2.from('exam_quiz_participants').upsert({session_code:_session,user_id:uid,status:status||'in_progress',questions_done:done,correct_count:correct,questions_total:10,score,time_seconds:t},{onConflict:'session_code,user_id'});}
+    // Patch nextQuestion
+    const _origNext=window.nextQuestion;
+    window.nextQuestion=async function(){await _save((typeof current!=='undefined'?current+1:0),(typeof correctCount!=='undefined'?correctCount:0),'in_progress');if(_origNext)_origNext();};
+    // Patch showResult
+    const _origShow=window.showResult;
+    window.showResult=async function(){await _save(10,(typeof correctCount!=='undefined'?correctCount:0),'finished');if(_origShow)await _origShow();};
+    // Mark in_progress on start
+    setTimeout(async()=>{const uid=await _getUid();if(!uid)return;await _db2.from('exam_quiz_participants').upsert({session_code:_session,user_id:uid,status:'in_progress',questions_done:0,correct_count:0,questions_total:10},{onConflict:'session_code,user_id'});},1500);
+    // Fix back button to return to quiz join page
+    document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('a.back-btn').forEach(b=>{const h=b.getAttribute('href');if(h&&h.includes('index.html'))b.setAttribute('href','../quiz/index.html');});});
+  })();
 </script>
 </body>
 </html>
