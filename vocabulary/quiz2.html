@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Vocabulary Quiz 2 — Verbs in Context</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    :root{--purple-dark:#26215C;--purple-main:#534AB7;--purple-light:#CECBF6;--purple-pale:#EEEDFE;--teal-dark:#085041;--teal-main:#0F6E56;--teal-pale:#E1F5EE;--coral-dark:#712B13;--coral-main:#993C1D;--coral-pale:#FAECE7;--green-main:#3B6D11;--green-pale:#EAF3DE;--green-light:#C0DD97;--bg:#F0EEF8;--radius:14px;--radius-sm:10px;}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);}
+    #quizScreen{height:100%;display:flex;flex-direction:column;}
+    .header{background:var(--green-main);padding:10px 18px 16px;flex-shrink:0;}
+    .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .back-btn{display:flex;align-items:center;gap:5px;color:var(--green-light);font-size:13px;cursor:pointer;text-decoration:none;}
+    .back-btn i{font-size:16px;}
+    .home-btn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;font-weight:500;padding:6px 13px;border-radius:20px;cursor:pointer;text-decoration:none;}
+    .home-btn i{font-size:14px;}
+    .progress-row{display:flex;align-items:center;gap:10px;}
+    .progress-track{flex:1;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;overflow:hidden;}
+    .progress-fill{height:100%;background:#fff;border-radius:3px;transition:width 0.4s ease;width:0%;}
+    .progress-label{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;min-width:40px;text-align:right;}
+    .scroll{flex:1;overflow-y:auto;padding:20px 16px 30px;-webkit-overflow-scrolling:touch;}
+    .scroll::-webkit-scrollbar{width:0;}
+    .word-bank-box{background:#fff;border-radius:var(--radius-sm);padding:12px 14px;border:0.5px solid var(--green-light);margin-bottom:16px;}
+    .wb-label{font-size:10px;font-weight:600;color:var(--green-main);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;}
+    .wb-words{display:flex;flex-wrap:wrap;gap:6px;}
+    .wb-word{background:var(--green-pale);color:var(--green-main);font-size:13px;font-weight:500;padding:4px 10px;border-radius:20px;border:1px solid var(--green-light);}
+    .qtopic{font-size:11px;font-weight:600;color:var(--green-main);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;}
+    .qlabel{font-size:13px;color:#888;margin-bottom:12px;font-style:italic;line-height:1.5;}
+    .passage{background:#fff;border-radius:var(--radius-sm);padding:14px 16px;border:0.5px solid var(--purple-light);font-size:16px;font-weight:500;color:var(--purple-dark);line-height:1.8;margin-bottom:16px;}
+    .input-label{font-size:11px;font-weight:600;color:var(--green-main);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;}
+    .answer-input{width:100%;background:#fff;border:2px solid var(--purple-light);border-radius:var(--radius);padding:14px 16px;font-size:15px;font-family:'DM Sans',sans-serif;color:var(--purple-dark);outline:none;transition:border-color 0.2s;margin-bottom:16px;}
+    .answer-input:focus{border-color:var(--green-main);}
+    .answer-input.correct{border-color:var(--teal-main);background:var(--teal-pale);color:var(--teal-dark);}
+    .answer-input.wrong{border-color:var(--coral-main);background:var(--coral-pale);color:var(--coral-dark);}
+    .feedback-box{border-radius:var(--radius-sm);padding:12px 14px;display:none;align-items:flex-start;gap:9px;margin-bottom:18px;animation:fadeUp 0.25s ease both;}
+    .feedback-box.show{display:flex;}
+    .feedback-box.correct-fb{background:var(--teal-pale);}
+    .feedback-box.wrong-fb{background:var(--coral-pale);}
+    .fb-icon{font-size:17px;flex-shrink:0;}
+    .fb-text{font-size:13px;line-height:1.55;}
+    .feedback-box.correct-fb .fb-text{color:var(--teal-dark);}
+    .feedback-box.wrong-fb .fb-text{color:var(--coral-dark);}
+    .check-btn{width:100%;background:var(--green-main);color:#fff;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;transition:opacity 0.2s;}
+    .check-btn:disabled{opacity:0.35;cursor:not-allowed;}
+    .check-btn i{font-size:17px;}
+    .next-btn{width:100%;background:var(--green-main);color:#fff;border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;cursor:pointer;display:none;align-items:center;justify-content:center;gap:8px;animation:fadeUp 0.25s ease both;}
+    .next-btn.show{display:flex;}
+    .next-btn i{font-size:17px;}
+    #resultScreen{display:none;flex-direction:column;height:100%;}
+    #resultScreen.show{display:flex;}
+    .result-header{background:var(--green-main);padding:10px 18px 16px;flex-shrink:0;}
+    .result-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .result-scroll{flex:1;overflow-y:auto;padding:24px 18px 30px;display:flex;flex-direction:column;align-items:center;}
+    .result-emoji{font-size:54px;text-align:center;margin-bottom:10px;}
+    .result-title{font-size:21px;font-weight:700;color:var(--purple-dark);text-align:center;margin-bottom:4px;}
+    .result-sub{font-size:13px;color:#999;text-align:center;margin-bottom:24px;}
+    .score-circle{width:116px;height:116px;border-radius:50%;background:var(--green-pale);border:4px solid var(--green-main);display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:24px;}
+    .score-num{font-size:32px;font-weight:700;color:var(--green-main);line-height:1;}
+    .score-lbl{font-size:11px;color:#888;margin-top:4px;}
+    .result-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;margin-bottom:24px;}
+    .rstat{background:#fff;border-radius:var(--radius-sm);padding:12px 10px;text-align:center;border:0.5px solid #E0DEFA;}
+    .rstat-val{font-size:20px;font-weight:700;}
+    .rstat-lbl{font-size:10px;color:#888;margin-top:3px;}
+    .rstat.c .rstat-val{color:var(--teal-main);}
+    .rstat.w .rstat-val{color:var(--coral-main);}
+    .rstat.a .rstat-val{color:var(--green-main);}
+    .result-btns{display:flex;flex-direction:column;gap:9px;width:100%;}
+    .btn-retry{width:100%;background:var(--green-main);color:#fff;border:none;border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .btn-back{width:100%;background:#fff;color:var(--green-main);border:1.5px solid var(--green-light);border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .btn-retry i,.btn-back i{font-size:17px;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  </style>
+</head>
+<body>
+<div id="quizScreen">
+  <div class="header">
+    <div class="header-top">
+      <a class="back-btn" href="./index.html"><i class="ti ti-arrow-left"></i> Vocabulary</a>
+      <a class="home-btn" href="../index.html"><i class="ti ti-home"></i> Main menu</a>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-label" id="progressLabel">0 / 9</span>
+    </div>
+  </div>
+  <div class="scroll" id="quizScroll">
+    <div class="qtopic">Vocabulary — Verbs in Context</div>
+    <div class="qlabel">Complete the gap with the correct past simple verb.</div>
+    <div class="word-bank-box">
+      <div class="wb-label">Word bank (past simple)</div>
+      <div class="wb-words">
+        <span class="wb-word">bought</span>
+        <span class="wb-word">used</span>
+        <span class="wb-word">took</span>
+        <span class="wb-word">told</span>
+        <span class="wb-word">went</span>
+      </div>
+    </div>
+    <div class="passage" id="passage"></div>
+    <div class="input-label">Your answer</div>
+    <input class="answer-input" id="answerInput" type="text" placeholder="Type the missing verb..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+    <div class="feedback-box" id="feedbackBox">
+      <span class="fb-icon" id="fbIcon"></span>
+      <div class="fb-text" id="fbText"></div>
+    </div>
+    <button class="check-btn" id="checkBtn" onclick="checkAnswer()" disabled><i class="ti ti-check"></i> Check answer</button>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next question <i class="ti ti-arrow-right"></i></button>
+  </div>
+</div>
+<div id="resultScreen">
+  <div class="result-header">
+    <div class="result-header-top">
+      <a class="back-btn" href="./index.html"><i class="ti ti-arrow-left"></i> Vocabulary</a>
+      <a class="home-btn" href="../index.html"><i class="ti ti-home"></i> Main menu</a>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+      <span class="progress-label">9 / 9</span>
+    </div>
+  </div>
+  <div class="result-scroll">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+    <div class="result-title">Quiz complete!</div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="score-circle">
+      <div class="score-num" id="scoreNum"></div>
+      <div class="score-lbl">Your score</div>
+    </div>
+    <div class="result-stats">
+      <div class="rstat c"><div class="rstat-val" id="resCorrect">0</div><div class="rstat-lbl">Correct</div></div>
+      <div class="rstat w"><div class="rstat-val" id="resWrong">0</div><div class="rstat-lbl">Wrong</div></div>
+      <div class="rstat a"><div class="rstat-val" id="resAttempts">0</div><div class="rstat-lbl">Attempts</div></div>
+    </div>
+    <div class="result-btns">
+      <button class="btn-retry" onclick="retryQuiz()"><i class="ti ti-refresh"></i> Try again</button>
+      <button class="btn-back" onclick="window.location.href='./index.html'"><i class="ti ti-list"></i> Back to Vocabulary</button>
+    </div>
+  </div>
+</div>
+<script>
+  const SUPABASE_URL='https://wfpphviaosfedotbivtb.supabase.co';
+  const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ';
+  const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const tg=window.Telegram?.WebApp;
+  tg?.ready();tg?.expand();
+
+  const ALL_QUESTIONS=[
+    // USED (past of use)
+    {q:'She _____ Facebook a lot when she was at school.',accepted:['used'],explanation:'<strong>used</strong> = past simple of <em>use</em>. She used Facebook — she spent time on it regularly.'},
+    {q:'Marcin _____ the hotel Wi-Fi to check his emails every morning.',accepted:['used'],explanation:'<strong>used</strong> = past simple of <em>use</em>. He used the Wi-Fi to connect.'},
+    {q:'Anja _____ the gym at the hotel every day during her trip.',accepted:['used'],explanation:'<strong>used</strong> = past simple of <em>use</em>. She used the gym — she exercised there.'},
+    {q:'We _____ the lift because our room was on the 8th floor.',accepted:['used'],explanation:'<strong>used</strong> = past simple of <em>use</em>. We used the lift to go up.'},
+    {q:'The students _____ their phones to look up new words during the lesson.',accepted:['used'],explanation:'<strong>used</strong> = past simple of <em>use</em>. They used their phones as dictionaries.'},
+    {q:'Farid _____ the safe in the hotel room to keep his passport.',accepted:['used'],explanation:'<strong>used</strong> = past simple of <em>use</em>. He used the safe for his valuables.'},
+    {q:'She _____ a map to find the restaurant in the city centre.',accepted:['used'],explanation:'<strong>used</strong> = past simple of <em>use</em>. She used a map to navigate.'},
+    {q:'They _____ the hotel car park when they drove to Samarkand.',accepted:['used'],explanation:'<strong>used</strong> = past simple of <em>use</em>. They used the parking area.'},
+    {q:'I _____ my sister\'s laptop when mine was broken.',accepted:['used'],explanation:'<strong>used</strong> = past simple of <em>use</em>. I used her laptop because mine didn\'t work.'},
+    // BOUGHT (past of buy)
+    {q:'Farid _____ a new laptop with his first salary.',accepted:['bought'],explanation:'<strong>bought</strong> = past simple of <em>buy</em>. He bought it — he paid money for it.'},
+    {q:'She _____ new towels for the bathroom last weekend.',accepted:['bought'],explanation:'<strong>bought</strong> = past simple of <em>buy</em>. She bought towels at a shop.'},
+    {q:'Marcin _____ a coffee at the hotel restaurant every morning.',accepted:['bought'],explanation:'<strong>bought</strong> = past simple of <em>buy</em>. He paid for coffee each morning.'},
+    {q:'We _____ souvenirs at the market in Samarkand.',accepted:['bought'],explanation:'<strong>bought</strong> = past simple of <em>buy</em>. We purchased souvenirs.'},
+    {q:'Anja _____ a new camera before her trip to Spain.',accepted:['bought'],explanation:'<strong>bought</strong> = past simple of <em>buy</em>. She purchased a camera.'},
+    {q:'He _____ refreshments from the hotel minibar late at night.',accepted:['bought'],explanation:'<strong>bought</strong> = past simple of <em>buy</em>. He paid for drinks from the minibar.'},
+    {q:'I _____ a gym membership last January but I only went twice.',accepted:['bought'],explanation:'<strong>bought</strong> = past simple of <em>buy</em>. I paid for a membership.'},
+    {q:'She _____ her friend a book about photography for her birthday.',accepted:['bought'],explanation:'<strong>bought</strong> = past simple of <em>buy</em>. She purchased a book as a gift.'},
+    {q:'They _____ tickets for the theatre online the day before.',accepted:['bought'],explanation:'<strong>bought</strong> = past simple of <em>buy</em>. They purchased tickets online.'},
+    // TOOK (past of take)
+    {q:'She _____ photos of people at the market.',accepted:['took'],explanation:'<strong>took</strong> = past simple of <em>take</em>. She took photos — she used a camera.'},
+    {q:'Farid _____ the lift to his room on the sixth floor.',accepted:['took'],explanation:'<strong>took</strong> = past simple of <em>take</em>. He took the lift — he used it to go up.'},
+    {q:'Marcin _____ a long bath after the football match.',accepted:['took'],explanation:'<strong>took</strong> = past simple of <em>take</em>. He took a bath — he had a bath.'},
+    {q:'We _____ the bus from Samarkand to Bukhara.',accepted:['took'],explanation:'<strong>took</strong> = past simple of <em>take</em>. We took the bus — we travelled by bus.'},
+    {q:'Anja _____ lots of photos during her holiday in Barcelona.',accepted:['took'],explanation:'<strong>took</strong> = past simple of <em>take</em>. She took photos with her camera.'},
+    {q:'He _____ a taxi from the airport to the hotel.',accepted:['took'],explanation:'<strong>took</strong> = past simple of <em>take</em>. He used a taxi to travel.'},
+    {q:'She _____ her laptop out of the safe before checking out.',accepted:['took'],explanation:'<strong>took</strong> = past simple of <em>take</em>. She removed her laptop from the safe.'},
+    {q:'I _____ a shower and then had breakfast in the restaurant.',accepted:['took'],explanation:'<strong>took</strong> = past simple of <em>take</em>. I took a shower — I had a shower.'},
+    {q:'They _____ the wrong road and arrived late at the hotel.',accepted:['took'],explanation:'<strong>took</strong> = past simple of <em>take</em>. They took the wrong road — they went the wrong way.'},
+    // TOLD (past of tell)
+    {q:'She _____ her friend about the new hotel in Samarkand.',accepted:['told'],explanation:'<strong>told</strong> = past simple of <em>tell</em>. She told her friend — she gave information.'},
+    {q:'The receptionist _____ us the Wi-Fi password when we checked in.',accepted:['told'],explanation:'<strong>told</strong> = past simple of <em>tell</em>. The receptionist gave us the information.'},
+    {q:'Farid _____ his parents that he got a new job.',accepted:['told'],explanation:'<strong>told</strong> = past simple of <em>tell</em>. He told his parents — he informed them.'},
+    {q:'The teacher _____ the students to put their phones away.',accepted:['told'],explanation:'<strong>told</strong> = past simple of <em>tell</em>. The teacher gave an instruction.'},
+    {q:'Anja _____ Marcin about her trip to the Magic Mountain Hotel.',accepted:['told'],explanation:'<strong>told</strong> = past simple of <em>tell</em>. She told him — she shared the information.'},
+    {q:'He _____ me that the restaurant was closed on Mondays.',accepted:['told'],explanation:'<strong>told</strong> = past simple of <em>tell</em>. He gave me useful information.'},
+    {q:'She _____ her sister the good news by phone.',accepted:['told'],explanation:'<strong>told</strong> = past simple of <em>tell</em>. She told her sister — she communicated the news.'},
+    {q:'The guide _____ us the history of the Registan in Samarkand.',accepted:['told'],explanation:'<strong>told</strong> = past simple of <em>tell</em>. The guide gave us information about the history.'},
+    // WENT (past of go)
+    {q:'She _____ shopping on Sunday and spent a lot of money.',accepted:['went'],explanation:'<strong>went</strong> = past simple of <em>go</em>. She went shopping — she visited shops.'},
+    {q:'Marcin _____ to the gym three times last week.',accepted:['went'],explanation:'<strong>went</strong> = past simple of <em>go</em>. He went to the gym — he visited it.'},
+    {q:'We _____ to a restaurant near the hotel for dinner.',accepted:['went'],explanation:'<strong>went</strong> = past simple of <em>go</em>. We went to the restaurant — we visited it.'},
+    {q:'Anja _____ to the swimming pool every morning during her holiday.',accepted:['went'],explanation:'<strong>went</strong> = past simple of <em>go</em>. She visited the pool regularly.'},
+    {q:'He _____ online to book the hotel room.',accepted:['went'],explanation:'<strong>went</strong> = past simple of <em>go</em>. He went online — he used the internet.'},
+  ];
+
+  const TOTAL=9;
+  let questions=[],current=0,correctCount=0,answered=false,attemptNumber=1,userId=null;
+
+  async function getTelegramId(){if(tg?.initDataUnsafe?.user)return String(tg.initDataUnsafe.user.id);return localStorage.getItem('dev_tg_id')||'dev_user';}
+
+  async function loadUser(){
+    try{
+      const tid=await getTelegramId();
+      const{data}=await db.from('exam_users').select('id').eq('telegram_id',tid).single();
+      userId=data?.id||null;
+      if(userId){
+        const{data:att}=await db.from('exam_quiz_attempts').select('id').eq('user_id',userId).eq('skill','vocabulary').eq('quiz_id',2);
+        attemptNumber=(att?.length||0)+1;
+      }
+    }catch(e){console.error(e);}
+  }
+
+  async function saveAttempt(score){
+    if(!userId)return;
+    try{
+      await db.from('exam_quiz_attempts').insert({user_id:userId,skill:'vocabulary',quiz_id:2,score});
+      const{data:prog}=await db.from('exam_progress').select('id,tasks_done').eq('user_id',userId).eq('skill','vocabulary').single();
+      if(prog){await db.from('exam_progress').update({tasks_done:Math.max(prog.tasks_done,2),updated_at:new Date().toISOString()}).eq('id',prog.id);}
+      else{await db.from('exam_progress').insert({user_id:userId,skill:'vocabulary',tasks_done:1,tasks_total:8});}
+    }catch(e){console.error(e);}
+  }
+
+  function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+  function normalize(str){return str.trim().toLowerCase().replace(/['']/g,"'").replace(/\s+/g,' ');}
+  function isCorrect(input,accepted){return accepted.some(a=>normalize(a)===normalize(input));}
+
+  function startQuiz(){
+    questions=shuffle(ALL_QUESTIONS).slice(0,TOTAL);
+    current=0;correctCount=0;answered=false;
+    document.getElementById('quizScreen').style.display='flex';
+    document.getElementById('resultScreen').classList.remove('show');
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    answered=false;
+    const q=questions[current];
+    const pct=(current/TOTAL)*100;
+    document.getElementById('progressFill').style.width=pct+'%';
+    document.getElementById('progressLabel').textContent=current+' / '+TOTAL;
+    document.getElementById('passage').textContent=q.q;
+    const input=document.getElementById('answerInput');
+    input.value='';input.className='answer-input';input.readOnly=false;
+    document.getElementById('feedbackBox').className='feedback-box';
+    document.getElementById('checkBtn').style.display='flex';
+    document.getElementById('checkBtn').disabled=true;
+    document.getElementById('nextBtn').classList.remove('show');
+    document.getElementById('quizScroll').scrollTo({top:0,behavior:'smooth'});
+    setTimeout(()=>input.focus(),300);
+  }
+
+  document.getElementById('answerInput').addEventListener('input',function(){
+    document.getElementById('checkBtn').disabled=this.value.trim().length===0;
+  });
+  document.getElementById('answerInput').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!document.getElementById('checkBtn').disabled&&!answered)checkAnswer();
+  });
+
+  function checkAnswer(){
+    if(answered)return;
+    answered=true;
+    const input=document.getElementById('answerInput');
+    const q=questions[current];
+    const correct=isCorrect(input.value,q.accepted);
+    if(correct)correctCount++;
+    input.className='answer-input '+(correct?'correct':'wrong');
+    input.readOnly=true;
+    const fb=document.getElementById('feedbackBox');
+    fb.className='feedback-box show '+(correct?'correct-fb':'wrong-fb');
+    document.getElementById('fbIcon').textContent=correct?'✅':'❌';
+    document.getElementById('fbText').innerHTML=correct
+      ?q.explanation
+      :'The correct answer is <strong>'+q.accepted[0]+'</strong>.<br><br>'+q.explanation;
+    document.getElementById('checkBtn').style.display='none';
+    const nb=document.getElementById('nextBtn');
+    nb.classList.add('show');
+    nb.innerHTML=current<TOTAL-1?'Next question <i class="ti ti-arrow-right"></i>':'See results <i class="ti ti-trophy"></i>';
+    setTimeout(()=>{document.getElementById('quizScroll').scrollTo({top:999,behavior:'smooth'});},150);
+  }
+
+  function nextQuestion(){current++;if(current>=TOTAL)showResult();else renderQuestion();}
+
+  async function showResult(){
+    const score=Math.round((correctCount/TOTAL)*100);
+    await saveAttempt(score);
+    document.getElementById('resultEmoji').textContent=score>=80?'🎉':score>=60?'👍':'💪';
+    document.getElementById('resultSub').textContent='Verbs in Context · Attempt '+attemptNumber;
+    document.getElementById('scoreNum').textContent=score+'%';
+    document.getElementById('resCorrect').textContent=correctCount;
+    document.getElementById('resWrong').textContent=TOTAL-correctCount;
+    document.getElementById('resAttempts').textContent=attemptNumber;
+    document.getElementById('quizScreen').style.display='none';
+    document.getElementById('resultScreen').classList.add('show');
+  }
+
+  function retryQuiz(){attemptNumber++;startQuiz();}
+  async function init(){await loadUser();startQuiz();}
+  init();
+
+  // ── CLASSROOM MODE ────────────────────────────────────────────
+  (function(){
+    const params=new URLSearchParams(window.location.search);
+    const _session=params.get('session');
+    const _classroom=params.get('classroom')==='true';
+    if(!_classroom||!_session)return;
+    const _db2=window.supabase.createClient('https://wfpphviaosfedotbivtb.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcHBodmlhb3NmZWRvdGJpdnRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjI0MzgsImV4cCI6MjA5NTYzODQzOH0.HyY11YK2hjmRogCGMKcB_s6EpwGM7OQbFtR7HNTLryQ');
+    let _uid=null,_start=Date.now();
+    async function _getUid(){if(_uid)return _uid;const tg2=window.Telegram?.WebApp?.initDataUnsafe?.user;const tid=tg2?String(tg2.id):'dev_user';const{data}=await _db2.from('exam_users').select('id').eq('telegram_id',tid).single();_uid=data?.id;return _uid;}
+    async function _save(done,correct,status){const uid=await _getUid();if(!uid)return;const score=done>0?Math.round((correct/done)*100):0;const t=status==='finished'?Math.round((Date.now()-_start)/1000):null;await _db2.from('exam_quiz_participants').upsert({session_code:_session,user_id:uid,status:status||'in_progress',questions_done:done,correct_count:correct,questions_total:TOTAL,score,time_seconds:t},{onConflict:'session_code,user_id'});}
+    const _origNext=window.nextQuestion;
+    window.nextQuestion=async function(){await _save((typeof current!=='undefined'?current+1:0),(typeof correctCount!=='undefined'?correctCount:0),'in_progress');if(_origNext)_origNext();};
+    const _origShow=window.showResult;
+    window.showResult=async function(){await _save(TOTAL,(typeof correctCount!=='undefined'?correctCount:0),'finished');if(_origShow)await _origShow();};
+    setTimeout(async()=>{const uid=await _getUid();if(!uid)return;await _db2.from('exam_quiz_participants').upsert({session_code:_session,user_id:uid,status:'in_progress',questions_done:0,correct_count:0,questions_total:TOTAL},{onConflict:'session_code,user_id'});},1500);
+    document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('a.back-btn').forEach(b=>{const h=b.getAttribute('href');if(h&&h.includes('index.html'))b.setAttribute('href','../quiz/index.html');});});
+  })();
+</script>
+</body>
+</html>
