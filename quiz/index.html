@@ -244,6 +244,8 @@
     'grammar-6': '../grammar/quiz6.html',
     'grammar-7': '../grammar/quiz7.html',
     'grammar-8': '../grammar/quiz8.html',
+    'vocabulary-1': '../vocabulary/quiz1.html',
+    'vocabulary-2': '../vocabulary/quiz2.html',
   };
 
   async function loadQuestionsFromFile(quizId) {
@@ -252,11 +254,20 @@
     try {
       const res = await fetch(filePath);
       const html = await res.text();
-      // Extract ALL_QUESTIONS array from the file
-      const match = html.match(/const ALL_QUESTIONS\s*=\s*(\[[\s\S]*?\]);[\s\n]*(?:let|var|const|\/\/|async|function)/);
-      if (!match) return null;
+      // Find ALL_QUESTIONS array — extract everything between the first [ and the matching ]
+      const start = html.indexOf('const ALL_QUESTIONS=[');
+      if (start === -1) return null;
+      const arrStart = html.indexOf('[', start);
+      // Find the matching closing bracket
+      let depth = 0, i = arrStart;
+      while (i < html.length) {
+        if (html[i] === '[') depth++;
+        else if (html[i] === ']') { depth--; if (depth === 0) break; }
+        i++;
+      }
+      const arrStr = html.slice(arrStart, i + 1);
       // eslint-disable-next-line no-eval
-      return eval(match[1]);
+      return eval(arrStr);
     } catch(e) {
       console.error('Failed to load questions from', filePath, e);
       return null;
@@ -396,9 +407,10 @@
   function renderQuestion(){
     answered=false;
     const q=questions[current];
-    const pct=(current/10)*100;
+    const total=questions.length;
+    const pct=(current/total)*100;
     document.getElementById('progressFill').style.width=pct+'%';
-    document.getElementById('progressLabel').textContent=current+' / 10';
+    document.getElementById('progressLabel').textContent=current+' / '+total;
     document.getElementById('qtext').textContent=q.q;
     document.getElementById('feedbackBox').className='feedback-box';
     document.getElementById('nextBtn').classList.remove('show');
@@ -406,9 +418,14 @@
     const container=document.getElementById('optionsEl');
     container.innerHTML='';
 
-    if(Array.isArray(q.options) && q.options.length >= 2 && !Array.isArray(q.accepted)){
-      // ── MULTIPLE CHOICE ──────────────────────────────────────────
+    const isMC = Array.isArray(q.options) && q.options.length >= 2 && !Array.isArray(q.accepted);
+    const isWordOrder = Array.isArray(q.words);
+    const isGapFill = Array.isArray(q.accepted) || (q.correct && !isMC && !isWordOrder);
+
+    if(isMC){
+      // ── MULTIPLE CHOICE ────────────────────────────────────────
       document.getElementById('qcontext').textContent='Choose the correct option.';
+      document.getElementById('qtopic').textContent=quizId.replace('-',' ').replace(/\b\w/g,l=>l.toUpperCase());
       shuffle(q.options).forEach(opt=>{
         const div=document.createElement('div');
         div.className='opt';
@@ -416,33 +433,31 @@
         div.addEventListener('click',()=>selectAnswerMC(opt,q));
         container.appendChild(div);
       });
-    } else {
-      // ── GAP FILL / WORD ORDER / REWRITE ──────────────────────────
-      const isWordOrder = Array.isArray(q.words);
-      document.getElementById('qcontext').textContent = isWordOrder
-        ? 'Tap the words in the correct order.'
-        : 'Type the correct answer.';
 
-      if(isWordOrder){
-        // Word order — show chips
-        renderWordOrderInput(q, container);
-      } else {
-        // Gap fill / rewrite — show text input
-        const wrap = document.createElement('div');
-        wrap.innerHTML = `
-          <input id="liveInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-            placeholder="Type your answer..."
-            style="width:100%;background:#fff;border:2px solid #CECBF6;border-radius:14px;padding:14px 16px;font-size:15px;font-family:'DM Sans',sans-serif;color:#26215C;outline:none;margin-bottom:10px;"
-          />
-          <button onclick="checkGapFill()" style="width:100%;background:#534AB7;color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-            <i class="ti ti-check" style="font-size:17px;"></i> Check answer
-          </button>`;
-        container.appendChild(wrap);
-        setTimeout(()=>document.getElementById('liveInput')?.focus(),300);
-        document.getElementById('liveInput')?.addEventListener('keydown', e=>{
-          if(e.key==='Enter') checkGapFill();
-        });
-      }
+    } else if(isWordOrder){
+      // ── WORD ORDER ─────────────────────────────────────────────
+      document.getElementById('qcontext').textContent='Tap the words in the correct order.';
+      document.getElementById('qtopic').textContent=quizId.replace('-',' ').replace(/\b\w/g,l=>l.toUpperCase());
+      renderWordOrderInput(q, container);
+
+    } else if(isGapFill){
+      // ── GAP FILL / REWRITE / VOCABULARY ───────────────────────
+      document.getElementById('qcontext').textContent='Type the missing word or phrase.';
+      document.getElementById('qtopic').textContent=quizId.replace('-',' ').replace(/\b\w/g,l=>l.toUpperCase());
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`
+        <input id="liveInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          placeholder="Type your answer..."
+          style="width:100%;background:#fff;border:2px solid #CECBF6;border-radius:14px;padding:14px 16px;font-size:15px;font-family:'DM Sans',sans-serif;color:#26215C;outline:none;margin-bottom:10px;display:block;"
+        />
+        <button onclick="checkGapFill()" style="width:100%;background:#534AB7;color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <i class="ti ti-check" style="font-size:17px;"></i> Check answer
+        </button>`;
+      container.appendChild(wrap);
+      setTimeout(()=>document.getElementById('liveInput')?.focus(),300);
+      document.getElementById('liveInput')?.addEventListener('keydown',e=>{
+        if(e.key==='Enter') checkGapFill();
+      });
     }
 
     document.getElementById('quizScroll').scrollTo({top:0,behavior:'smooth'});
