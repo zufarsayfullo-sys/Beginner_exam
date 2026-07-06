@@ -445,19 +445,25 @@
       document.getElementById('qcontext').textContent='Type the missing word or phrase.';
       document.getElementById('qtopic').textContent=quizId.replace('-',' ').replace(/\b\w/g,l=>l.toUpperCase());
       const wrap=document.createElement('div');
-      wrap.innerHTML=`
-        <input id="liveInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-          placeholder="Type your answer..."
-          style="width:100%;background:#fff;border:2px solid #CECBF6;border-radius:14px;padding:14px 16px;font-size:15px;font-family:'DM Sans',sans-serif;color:#26215C;outline:none;margin-bottom:10px;display:block;"
-        />
-        <button onclick="checkGapFill()" style="width:100%;background:#534AB7;color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <i class="ti ti-check" style="font-size:17px;"></i> Check answer
-        </button>`;
+      wrap.style.cssText='width:100%;';
+      const input=document.createElement('input');
+      input.id='liveInput';
+      input.type='text';
+      input.autocomplete='off';
+      input.setAttribute('autocorrect','off');
+      input.setAttribute('autocapitalize','off');
+      input.setAttribute('spellcheck','false');
+      input.placeholder='Type your answer...';
+      input.style.cssText='width:100%;background:#fff;border:2px solid #CECBF6;border-radius:14px;padding:14px 16px;font-size:15px;font-family:DM Sans,sans-serif;color:#26215C;outline:none;margin-bottom:10px;box-sizing:border-box;display:block;';
+      const btn=document.createElement('button');
+      btn.textContent='Check answer';
+      btn.style.cssText='width:100%;background:#534AB7;color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;box-sizing:border-box;display:block;';
+      btn.onclick=checkGapFill;
+      wrap.appendChild(input);
+      wrap.appendChild(btn);
       container.appendChild(wrap);
-      setTimeout(()=>document.getElementById('liveInput')?.focus(),300);
-      document.getElementById('liveInput')?.addEventListener('keydown',e=>{
-        if(e.key==='Enter') checkGapFill();
-      });
+      setTimeout(()=>input.focus(),300);
+      input.addEventListener('keydown',e=>{if(e.key==='Enter')checkGapFill();});
     }
 
     document.getElementById('quizScroll').scrollTo({top:0,behavior:'smooth'});
