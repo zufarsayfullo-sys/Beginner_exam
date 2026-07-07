@@ -474,6 +474,7 @@ const QUIZZES = [
   {id:'grammar-8', label:'Grammar 8', sub:'Going To'},
   {id:'vocabulary-1', label:'Vocabulary 1', sub:'Hotel Facilities'},
   {id:'vocabulary-2', label:'Vocabulary 2', sub:'Verbs in Context'},
+  {id:'vocabulary-3', label:'Vocabulary 3', sub:'Was born / Died'},
 ];
 
 let currentTeacher = null;
@@ -771,10 +772,17 @@ async function startQuiz() {
   const quizLabel = QUIZZES.find(q => q.id === selectedQuiz)?.label || selectedQuiz;
 
   // Insert session with status 'waiting' — students can join but quiz hasn't started
-  await db.from('exam_quiz_sessions').insert({
+  const { data: sessionData, error: sessionError } = await db.from('exam_quiz_sessions').insert({
     code, quiz_id: selectedQuiz, teacher_id: currentTeacherId,
     quiz_label: quizLabel, status: 'waiting'
-  });
+  }).select().single();
+
+  if (sessionError) {
+    console.error('Session insert error:', sessionError);
+    alert('Failed to create quiz session: ' + sessionError.message);
+    return;
+  }
+  console.log('Session created:', sessionData);
 
   document.getElementById('aqTitle').textContent        = quizLabel;
   document.getElementById('aqCode').textContent         = code;
